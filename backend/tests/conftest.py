@@ -22,6 +22,7 @@ def pytest_configure(config: pytest.Config) -> None:
         "API_KEY_PEPPER",
         "test-api-key-pepper-secret-minimum-32-characters-long!",
     )
+    os.environ.setdefault("SUPERADMIN_EMAIL", "superadmin@example.com")
 
 
 @pytest.fixture(autouse=True)

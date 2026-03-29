@@ -30,7 +30,7 @@ Full-stack cybersecurity IOC analysis and threat intelligence platform (MISP-cen
 | `INTERNAL_JWT_EXPIRE_MINUTES` | Backend | Internal JWT TTL (default 5) |
 | `BFF_SERVICE_KEY` | Backend + Next server | Shared secret for internal auth exchange only |
 | `API_KEY_PEPPER` | Backend | Server secret for HMAC-SHA256 of user API keys (lookup + verify) |
-| `SUPERADMIN_EMAIL` | Backend | Email allowed to bootstrap `SUPERADMIN` role |
+| `SUPERADMIN_EMAIL` | Backend | Login email (lowercased) that may become the single `SUPERADMIN` when no other superadmin exists |
 | `NEXTAUTH_SECRET` | Frontend | NextAuth session encryption |
 | `NEXTAUTH_URL` | Frontend | e.g. `http://localhost:3000` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Frontend | Google OAuth (optional locally) |
@@ -64,13 +64,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 SQL lives in `backend/app/db/migrations/`. Apply `001_initial.sql` with your migration process (or run the statements via `psql`).
 
-**Opt-in integration test (destructive):** resets the **`public`** schema on the target database.
+**Opt-in integration tests (destructive):** reset the **`public`** schema on the target database.
 
 ```powershell
 $env:TEST_DATABASE_URL = "postgresql://user:pass@localhost:5432/threatvision_test"
 $env:RUN_DB_MIGRATION_TESTS = "1"
 cd threatvision\backend
 .\.venv\Scripts\pytest tests\test_migrations_apply.py::test_migrations_apply_to_database -v
+.\.venv\Scripts\pytest tests\test_m3_integration.py::test_auth_superadmin_and_rate_limit_flow -v
 ```
 
 ## Documentation

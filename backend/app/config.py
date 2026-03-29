@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     internal_jwt_expire_minutes: int = 5
     bff_service_key: str
     api_key_pepper: str
+    superadmin_email: str
     cors_origins: str = "http://localhost:3000"
 
     @field_validator("internal_jwt_expire_minutes")
