@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.pool import close_pool, create_pool
-from app.routers import auth, internal, misp, v1_me
+from app.routers import auth, internal, ioc, misp, v1_me
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ def create_application() -> FastAPI:
     application.include_router(internal.router)
     application.include_router(auth.router)
     application.include_router(misp.router)
+    application.include_router(ioc.router)
     application.include_router(v1_me.router)
 
     @application.get("/health")

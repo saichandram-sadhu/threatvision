@@ -34,6 +34,24 @@ async def misp_get_json(
         return r.json()
 
 
+async def misp_post_json(
+    base_url: str,
+    api_key: str,
+    path: str,
+    body: dict[str, Any],
+    *,
+    timeout: float = 45.0,
+) -> Any:
+    root = base_url.rstrip("/")
+    if not path.startswith("/"):
+        path = "/" + path
+    url = f"{root}{path}"
+    async with httpx.AsyncClient(timeout=httpx.Timeout(timeout), follow_redirects=True) as client:
+        r = await client.post(url, headers=_auth_headers(api_key), json=body)
+        r.raise_for_status()
+        return r.json()
+
+
 async def misp_ping_version(base_url: str, api_key: str) -> dict[str, Any]:
     """Return MISP version payload; tries common REST paths."""
     last_err: Exception | None = None

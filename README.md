@@ -41,6 +41,9 @@ All routes expect `Authorization: Bearer <internal JWT>` from the BFF exchange.
 | `POST` | `/settings/misp/test` | Ping MISP (`servers/getVersion`); body may omit `base_url` / `api_key` to use saved user or platform fallback |
 | `PUT` | `/settings/misp` | Save user MISP URL + API key (Fernet-encrypted in DB) |
 | `GET` | `/misp/explorer` | Feeds, servers, taxonomies, stats; **30s** per-user JSON cache in `misp_explorer_cache` |
+| `POST` | `/ioc/analyze` | Classify IOC, query MISP (`attributes/restSearch`), return **full vendor grid** (MISP + placeholders); applies **daily rate limit**; logs `activity_log` |
+
+`POST /ioc/analyze` body: `{ "ioc": "<string>" }` — requires internal JWT. Response matches spec §4.2 (`ioc`, `aggregate`, `sources[]`).
 | `SUPERADMIN_EMAIL` | Backend | Login email (lowercased) that may become the single `SUPERADMIN` when no other superadmin exists |
 | `NEXTAUTH_SECRET` | Frontend | NextAuth session encryption |
 | `NEXTAUTH_URL` | Frontend | e.g. `http://localhost:3000` |

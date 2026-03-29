@@ -1,0 +1,25 @@
+{
+  "response": [
+    {
+      "id": "101",
+      "type": "ip-src",
+      "value": "8.8.8.8",
+      "Event": {
+        "id": "5001",
+        "info": "Suspicious traffic",
+        "Tag": [{"name": "tlp:amber"}],
+        "Orgc": {"name": "Test Org"}
+      }
+    },
+    {
+      "id": "102",
+      "type": "domain",
+      "value": "evil.test",
+      "Event": {
+        "id": "5001",
+        "info": "Suspicious traffic",
+        "Tag": [{"name": "tlp:amber"}, {"name": "misp-galaxy:threat-actor:APT1"}]
+      }
+    }
+  ]
+}
