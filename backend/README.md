@@ -25,6 +25,16 @@ See root `../README.md` for environment variables.
 
 Optional **`GEMINI_API_KEY`**: enables the AI executive summary in the PDF; if missing or the API errors, a **placeholder** summary is used and vendor tables are unchanged.
 
+## Superadmin admin API (M10)
+
+Routes under **`/admin`** require a **short-lived internal JWT** whose `role` claim is **`SUPERADMIN`**, and the caller’s **database user** must also be **`SUPERADMIN`** with **`email`** equal to **`SUPERADMIN_EMAIL`** (env) — same bootstrap rule as login promotion.
+
+- **`GET /admin/users`** — list users (limit 500).
+- **`PATCH /admin/users/{user_id}`** — `dailyLimit`, `unlimited`, `banned` (omit fields to leave unchanged; cannot ban yourself).
+- **`POST /admin/users/{user_id}/regenerate-api-key`** — new API key returned **once** in JSON.
+- **`GET /admin/platform/misp`** — platform MISP fallback URL + whether an encrypted API key is stored.
+- **`PUT /admin/platform/misp`** — set/clear `misp_fallback_url` and/or `misp_fallback_api_key` (Fernet-encrypted at rest; omit a field to leave it unchanged; empty string clears URL or key).
+
 ## SIEM webhooks (M9)
 
 `POST /api/webhook/siem/{path_key}` (or `/api/webhook/siem` + `X-Tv-Path-Key`) accepts JSON alerts, extracts IOCs, and runs the normal analyze pipeline. See `../docs/integrations/siem-webhooks.md` for auth (path-only, bearer `X-Tv-Webhook-Secret`, optional HMAC + timestamp), Wazuh-oriented examples, and how to provision `webhook_secrets` + migration `005_webhook_path_key.sql`.
