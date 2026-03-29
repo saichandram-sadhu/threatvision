@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from app.db.apply_sql import load_migration_statements
+from app.db.apply_sql import load_all_migration_statements, load_migration_statements
 
 
 def test_migration_001_splits_into_statements() -> None:
@@ -36,7 +36,7 @@ async def test_migrations_apply_to_database() -> None:
         # Restore default grants (superuser DBs)
         await conn.execute("GRANT ALL ON SCHEMA public TO PUBLIC")
 
-        for stmt in load_migration_statements("001_initial.sql"):
+        for stmt in load_all_migration_statements():
             await conn.execute(stmt)
 
         rows = await conn.fetch(

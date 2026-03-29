@@ -34,3 +34,13 @@ def split_sql_statements(sql: str) -> list[str]:
 def load_migration_statements(name: str) -> list[str]:
     path = Path(__file__).resolve().parent / "migrations" / name
     return split_sql_statements(path.read_text(encoding="utf-8"))
+
+
+def load_all_migration_statements() -> list[str]:
+    """Apply every `NNN_*.sql` file in order."""
+    root = Path(__file__).resolve().parent / "migrations"
+    paths = sorted(root.glob("[0-9][0-9][0-9]_*.sql"))
+    statements: list[str] = []
+    for path in paths:
+        statements.extend(split_sql_statements(path.read_text(encoding="utf-8")))
+    return statements

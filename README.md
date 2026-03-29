@@ -27,7 +27,9 @@ Full-stack cybersecurity IOC analysis and threat intelligence platform (MISP-cen
 | `DATABASE_URL` | Backend | `postgresql://user:pass@host:5432/threatvision` |
 | `ENCRYPTION_KEY` | Backend | Fernet key (URL-safe base64, 32-byte) |
 | `INTERNAL_JWT_SECRET` | Backend | HS256 secret for BFF ↔ API short-lived JWT |
+| `INTERNAL_JWT_EXPIRE_MINUTES` | Backend | Internal JWT TTL (default 5) |
 | `BFF_SERVICE_KEY` | Backend + Next server | Shared secret for internal auth exchange only |
+| `API_KEY_PEPPER` | Backend | Server secret for HMAC-SHA256 of user API keys (lookup + verify) |
 | `SUPERADMIN_EMAIL` | Backend | Email allowed to bootstrap `SUPERADMIN` role |
 | `NEXTAUTH_SECRET` | Frontend | NextAuth session encryption |
 | `NEXTAUTH_URL` | Frontend | e.g. `http://localhost:3000` |
