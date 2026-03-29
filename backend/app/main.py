@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.pool import close_pool, create_pool
-from app.routers import auth, bulk, bulk_sse, internal, ioc, misp, reports, v1_me
+from app.routers import auth, bulk, bulk_sse, internal, ioc, misp, reports, v1_me, webhooks
 from app.services.ioc.bulk_hub import BulkStreamHub
 
 
@@ -35,6 +35,7 @@ def create_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.include_router(webhooks.router)
     application.include_router(internal.router)
     application.include_router(auth.router)
     application.include_router(misp.router)

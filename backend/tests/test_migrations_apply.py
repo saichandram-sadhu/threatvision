@@ -9,6 +9,13 @@ import pytest
 from app.db.apply_sql import load_all_migration_statements, load_migration_statements
 
 
+def test_migration_005_webhook_path_key() -> None:
+    stmts = load_migration_statements("005_webhook_path_key.sql")
+    joined = "\n".join(stmts).lower()
+    assert "path_key" in joined
+    assert "secret_hash" in joined
+
+
 def test_migration_004_adds_position_column() -> None:
     stmts = load_migration_statements("004_ioc_job_item_position.sql")
     joined = "\n".join(stmts).lower()

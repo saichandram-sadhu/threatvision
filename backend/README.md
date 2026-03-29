@@ -24,3 +24,7 @@ See root `../README.md` for environment variables.
 `POST /reports/pdf` renders HTML via **Jinja2** and converts with **WeasyPrint**. On Linux servers (e.g. Railway/Docker), install Cairo, Pango, and GDK-Pixbuf (e.g. Debian/Ubuntu: `apt install libcairo2 libpango-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`). On Windows, WeasyPrint may require extra GTK/runtime setup; if the engine fails to load, the API returns **503** with `pdf_engine_unavailable`.
 
 Optional **`GEMINI_API_KEY`**: enables the AI executive summary in the PDF; if missing or the API errors, a **placeholder** summary is used and vendor tables are unchanged.
+
+## SIEM webhooks (M9)
+
+`POST /api/webhook/siem/{path_key}` (or `/api/webhook/siem` + `X-Tv-Path-Key`) accepts JSON alerts, extracts IOCs, and runs the normal analyze pipeline. See `../docs/integrations/siem-webhooks.md` for auth (path-only, bearer `X-Tv-Webhook-Secret`, optional HMAC + timestamp), Wazuh-oriented examples, and how to provision `webhook_secrets` + migration `005_webhook_path_key.sql`.
