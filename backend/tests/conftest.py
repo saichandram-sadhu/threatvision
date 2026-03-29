@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import pytest
+from cryptography.fernet import Fernet
 
 from app.config import get_settings
 
@@ -23,6 +24,7 @@ def pytest_configure(config: pytest.Config) -> None:
         "test-api-key-pepper-secret-minimum-32-characters-long!",
     )
     os.environ.setdefault("SUPERADMIN_EMAIL", "superadmin@example.com")
+    os.environ.setdefault("ENCRYPTION_KEY", Fernet.generate_key().decode("ascii"))
 
 
 @pytest.fixture(autouse=True)

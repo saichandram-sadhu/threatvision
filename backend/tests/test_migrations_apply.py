@@ -57,6 +57,7 @@ async def test_migrations_apply_to_database() -> None:
             "ioc_job_items",
             "activity_log",
             "webhook_secrets",
+            "misp_explorer_cache",
         }
         assert expected == names
     finally:

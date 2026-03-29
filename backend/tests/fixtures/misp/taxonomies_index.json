@@ -1,0 +1,11 @@
+[
+  {
+    "namespace": "tlp",
+    "enabled": true,
+    "description": "Traffic Light Protocol"
+  },
+  {
+    "namespace": "misp",
+    "enabled": true
+  }
+]

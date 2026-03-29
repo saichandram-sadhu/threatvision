@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1",
+    "name": "CIRCL OSINT Feed",
+    "url": "https://example.com/feed",
+    "enabled": true,
+    "format": "misp",
+    "last_fetch": "2026-03-29T12:00:00+00:00",
+    "event_count": 42
+  },
+  {
+    "id": "2",
+    "name": "Botvrij.EU",
+    "enabled": false,
+    "format": "csv",
+    "last_fetch": null
+  }
+]

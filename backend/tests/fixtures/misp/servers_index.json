@@ -1,0 +1,13 @@
+{
+  "Server": [
+    {
+      "id": "1",
+      "name": "partner-misp",
+      "url": "https://partner.example.org",
+      "push": true,
+      "pull": true,
+      "last_pushed": "2026-03-29T10:00:00+00:00",
+      "status": "Ok"
+    }
+  ]
+}

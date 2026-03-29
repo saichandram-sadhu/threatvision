@@ -30,6 +30,17 @@ Full-stack cybersecurity IOC analysis and threat intelligence platform (MISP-cen
 | `INTERNAL_JWT_EXPIRE_MINUTES` | Backend | Internal JWT TTL (default 5) |
 | `BFF_SERVICE_KEY` | Backend + Next server | Shared secret for internal auth exchange only |
 | `API_KEY_PEPPER` | Backend | Server secret for HMAC-SHA256 of user API keys (lookup + verify) |
+| `ENCRYPTION_KEY` | Backend | Fernet key for encrypting stored integration secrets (required for `PUT /settings/misp`) |
+
+### MISP API (internal JWT)
+
+All routes expect `Authorization: Bearer <internal JWT>` from the BFF exchange.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/settings/misp/test` | Ping MISP (`servers/getVersion`); body may omit `base_url` / `api_key` to use saved user or platform fallback |
+| `PUT` | `/settings/misp` | Save user MISP URL + API key (Fernet-encrypted in DB) |
+| `GET` | `/misp/explorer` | Feeds, servers, taxonomies, stats; **30s** per-user JSON cache in `misp_explorer_cache` |
 | `SUPERADMIN_EMAIL` | Backend | Login email (lowercased) that may become the single `SUPERADMIN` when no other superadmin exists |
 | `NEXTAUTH_SECRET` | Frontend | NextAuth session encryption |
 | `NEXTAUTH_URL` | Frontend | e.g. `http://localhost:3000` |
