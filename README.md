@@ -56,6 +56,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Database migrations
+
+SQL lives in `backend/app/db/migrations/`. Apply `001_initial.sql` with your migration process (or run the statements via `psql`).
+
+**Opt-in integration test (destructive):** resets the **`public`** schema on the target database.
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql://user:pass@localhost:5432/threatvision_test"
+$env:RUN_DB_MIGRATION_TESTS = "1"
+cd threatvision\backend
+.\.venv\Scripts\pytest tests\test_migrations_apply.py::test_migrations_apply_to_database -v
+```
+
 ## Documentation
 
 - [Design spec](docs/specs/2026-03-29-threatvision-design.md)
