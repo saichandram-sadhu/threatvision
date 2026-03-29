@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     api_key_pepper: str
     superadmin_email: str
     cors_origins: str = "http://localhost:3000"
+    gemini_api_key: str | None = None
 
     @field_validator("internal_jwt_expire_minutes")
     @classmethod

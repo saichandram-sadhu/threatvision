@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.pool import close_pool, create_pool
-from app.routers import auth, bulk, bulk_sse, internal, ioc, misp, v1_me
+from app.routers import auth, bulk, bulk_sse, internal, ioc, misp, reports, v1_me
 from app.services.ioc.bulk_hub import BulkStreamHub
 
 
@@ -41,6 +41,7 @@ def create_application() -> FastAPI:
     application.include_router(ioc.router)
     application.include_router(bulk.router)
     application.include_router(bulk_sse.router)
+    application.include_router(reports.router)
     application.include_router(v1_me.router)
 
     @application.get("/health")

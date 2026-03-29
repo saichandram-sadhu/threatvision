@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>ThreatVision IOC Report</title>
+  <style>
+    @page { margin: 18mm 16mm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #0d0d0f;
+      margin: 0;
+    }
+    h1 {
+      font-size: 18pt;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 4mm 0;
+      color: #0a1628;
+    }
+    .meta {
+      font-size: 9pt;
+      color: #5c6370;
+      margin-bottom: 8mm;
+      border-bottom: 1px solid #e2e6ec;
+      padding-bottom: 4mm;
+    }
+    h2 {
+      font-size: 12pt;
+      margin: 8mm 0 3mm 0;
+      color: #0a1628;
+      page-break-after: avoid;
+    }
+    .exec {
+      background: #f4f6fa;
+      border-left: 3px solid #2563eb;
+      padding: 4mm 5mm;
+      margin: 0 0 6mm 0;
+      page-break-inside: avoid;
+    }
+    .exec p { margin: 0 0 2.5mm 0; }
+    .exec p:last-child { margin-bottom: 0; }
+    .ioc-block {
+      page-break-inside: avoid;
+      margin-bottom: 10mm;
+      border: 1px solid #dfe3ea;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .ioc-head {
+      background: linear-gradient(90deg, #0a1628 0%, #1e3a5f 100%);
+      color: #fff;
+      padding: 3mm 4mm;
+      font-weight: 600;
+      font-size: 10.5pt;
+    }
+    .ioc-sub {
+      font-weight: 400;
+      opacity: 0.88;
+      font-size: 9pt;
+      margin-top: 1mm;
+    }
+    .agg {
+      padding: 3mm 4mm;
+      background: #fafbfc;
+      border-bottom: 1px solid #e2e6ec;
+      font-size: 9.5pt;
+    }
+    .agg strong { color: #0a1628; }
+    table.vendor {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+    table.vendor th {
+      text-align: left;
+      background: #eef1f6;
+      color: #374151;
+      padding: 2mm 3mm;
+      border-bottom: 1px solid #d1d5db;
+      font-weight: 600;
+    }
+    table.vendor td {
+      vertical-align: top;
+      padding: 2.5mm 3mm;
+      border-bottom: 1px solid #eceff4;
+    }
+    table.vendor tr:last-child td { border-bottom: none; }
+    .verdict {
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 8.5pt;
+      letter-spacing: 0.04em;
+    }
+    .v-malicious { color: #c0262d; }
+    .v-suspicious { color: #c2410c; }
+    .v-clean { color: #15803d; }
+    .v-unknown { color: #6b7280; }
+    .v-none { color: #9ca3af; font-style: italic; text-transform: none; }
+    .detail-lines { color: #4b5563; margin: 1mm 0 0 0; padding-left: 3.5mm; }
+    .detail-lines li { margin-bottom: 0.5mm; }
+    .misp-events {
+      margin: 0;
+      padding: 3mm 4mm;
+      background: #fffbeb;
+      border-top: 1px solid #fde68a;
+      font-size: 9pt;
+    }
+    .misp-events h3 {
+      margin: 0 0 2mm 0;
+      font-size: 9.5pt;
+      color: #92400e;
+    }
+    .event-row {
+      margin-bottom: 2mm;
+      padding-bottom: 2mm;
+      border-bottom: 1px dashed #fcd34d;
+    }
+    .event-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .footer {
+      margin-top: 12mm;
+      padding-top: 4mm;
+      border-top: 1px solid #e2e6ec;
+      font-size: 8.5pt;
+      color: #6b7280;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+    .brand { font-weight: 600; color: #374151; }
+  </style>
+</head>
+<body>
+  <h1>ThreatVision — IOC intelligence report</h1>
+  <div class="meta">Generated: {{ generated_at }} · Indicators: {{ analyses|length }}</div>
+
+  <h2>Executive summary</h2>
+  <div class="exec">
+    {% for p in exec_paragraphs %}
+    <p>{{ p }}</p>
+    {% endfor %}
+  </div>
+
+  {% for block in analysis_blocks %}
+  <div class="ioc-block">
+    <div class="ioc-head">
+      {{ block.raw_display }}
+      <div class="ioc-sub">Normalized: {{ block.normalized }} · Type: {{ block.ioc_type }}</div>
+    </div>
+    <div class="agg">
+      <strong>Consensus:</strong> {{ block.agg_verdict }} (confidence {{ block.agg_confidence }}/100)
+      {% if block.agg_rationale %}
+      — {{ block.agg_rationale }}
+      {% endif %}
+    </div>
+    <table class="vendor">
+      <thead>
+        <tr>
+          <th style="width:26%">Source</th>
+          <th style="width:14%">Verdict</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in block.vendor_rows %}
+        <tr>
+          <td>{{ row.name }}</td>
+          <td><span class="verdict {{ row.verdict_class }}">{{ row.verdict_label }}</span></td>
+          <td>
+            {% if row.detail_lines %}
+            <ul class="detail-lines">
+              {% for line in row.detail_lines %}
+              <li>{{ line }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <span class="v-none">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if block.misp_events %}
+    <div class="misp-events">
+      <h3>MISP events</h3>
+      {% for ev in block.misp_events %}
+      <div class="event-row">
+        <strong>Event {{ ev.eventId }}</strong> — {{ ev.eventName }}<br/>
+        TLP: {{ ev.tlp }}{% if ev.feedName %} · Feed: {{ ev.feedName }}{% endif %}
+        {% if ev.tags %}
+        <br/>Tags: {% for t in ev.tags %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="footer">
+    <span class="brand">ThreatVision</span> — threat intelligence analysis platform.<br/>
+    Developed by Saichandram Sadhu
+  </div>
+</body>
+</html>
