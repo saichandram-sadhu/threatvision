@@ -110,6 +110,14 @@ def assemble_source_table(
     return out
 
 
+def display_name_for_source_id(source_id: str) -> str:
+    """Map catalog source id to human label (activity feed chips, etc.)."""
+    for entry in CATALOG_ORDER:
+        if entry.id == source_id:
+            return entry.display_name
+    return source_id
+
+
 def assemble_source_table_with_enrichers(
     ioc_type: IocType,
     snapshot: IntegrationSnapshot,
