@@ -25,7 +25,7 @@ CATALOG_ORDER: list[CatalogEntry] = [
     CatalogEntry("misp", "MISP", False, None, _ALL),
     CatalogEntry("virustotal", "VirusTotal", True, "virustotal", _ALL),
     CatalogEntry("abuseipdb", "AbuseIPDB", True, "abuseipdb", frozenset({"ip"})),
-    CatalogEntry("otx", "AlienVault OTX", True, "otx", frozenset({"ip", "hash", "domain", "url", "email_header"})),
+    CatalogEntry("otx", "AlienVault OTX", False, None, frozenset({"ip", "hash", "domain", "url", "email_header"})),
     CatalogEntry("shodan", "Shodan", True, "shodan", frozenset({"ip", "domain", "url"})),
     CatalogEntry("urlscan", "URLScan.io", True, "urlscan", frozenset({"url", "domain"})),
     CatalogEntry("malwarebazaar", "MalwareBazaar", False, None, frozenset({"hash"})),
@@ -105,6 +105,24 @@ def assemble_source_table(
     for entry in CATALOG_ORDER:
         if entry.id == "misp":
             out.append(misp_row)
+        else:
+            out.append(build_non_misp_placeholder(entry, ioc_type, snapshot))
+    return out
+
+
+def assemble_source_table_with_enrichers(
+    ioc_type: IocType,
+    snapshot: IntegrationSnapshot,
+    misp_row: SourceResult,
+    enricher_results: dict[str, SourceResult],
+) -> list[SourceResult]:
+    """Merge live enricher rows into the catalog order; missing ids use placeholders."""
+    out: list[SourceResult] = []
+    for entry in CATALOG_ORDER:
+        if entry.id == "misp":
+            out.append(misp_row)
+        elif entry.id in enricher_results:
+            out.append(enricher_results[entry.id])
         else:
             out.append(build_non_misp_placeholder(entry, ioc_type, snapshot))
     return out

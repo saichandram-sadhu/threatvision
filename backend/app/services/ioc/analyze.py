@@ -1,4 +1,4 @@
-"""Single-IOC analysis orchestration (M5: MISP + placeholders)."""
+"""Single-IOC analysis orchestration (M5: MISP; M6: external enrichers)."""
 
 from __future__ import annotations
 
@@ -6,12 +6,15 @@ import json
 import uuid
 
 import asyncpg
+import httpx
 
 from app.schemas.source_result import AnalyzeResponse, IocPayload, SourceResult
+from app.services.enrichers.context import EnricherContext
+from app.services.enrichers.runner import run_enrichers
 from app.services.ioc.classify import classify_ioc, search_value_for_misp
 from app.services.ioc.consensus import aggregate_from_sources
 from app.services.ioc.integration_snapshot import load_integration_snapshot
-from app.services.ioc.source_catalog import assemble_source_table
+from app.services.ioc.source_catalog import assemble_source_table_with_enrichers
 from app.services.misp.ioc_search import search_misp_for_value
 from app.services.misp.resolve import resolve_misp_for_user
 
@@ -40,7 +43,22 @@ async def analyze_ioc_value(
             errorCode="not_configured",
         )
 
-    sources = assemble_source_table(ioc_type, snapshot, misp_row)
+    timeout = httpx.Timeout(connect=10.0, read=45.0, write=10.0, pool=5.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        ctx = EnricherContext(
+            ioc_type=ioc_type,
+            normalized=normalized,
+            raw_ioc=raw_ioc,
+            snapshot=snapshot,
+            client=client,
+        )
+        enricher_results = await run_enrichers(ctx)
+    sources = assemble_source_table_with_enrichers(
+        ioc_type,
+        snapshot,
+        misp_row,
+        enricher_results,
+    )
     aggregate = aggregate_from_sources(sources)
 
     await _log_activity(pool, user_id, raw_ioc, aggregate.verdict, sources)
