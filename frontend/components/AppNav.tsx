@@ -20,6 +20,12 @@ export function AppNav() {
             <Link href="/dashboard" className="hover:text-tv-cyan">
               Dashboard
             </Link>
+            <Link href="/analyze" className="hover:text-tv-cyan">
+              Analyze
+            </Link>
+            <Link href="/bulk" className="hover:text-tv-cyan">
+              Bulk
+            </Link>
             <Link href="/settings" className="hover:text-tv-cyan">
               Settings
             </Link>
