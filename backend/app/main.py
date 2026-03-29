@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.pool import close_pool, create_pool
-from app.routers import auth, internal, ioc, misp, v1_me
+from app.routers import auth, bulk, bulk_sse, internal, ioc, misp, v1_me
+from app.services.ioc.bulk_hub import BulkStreamHub
 
 
 @asynccontextmanager
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     if settings.database_url:
         pool = await create_pool(settings.database_url)
     app.state.pool = pool
+    app.state.bulk_hub = BulkStreamHub()
     yield
     await close_pool(pool)
 
@@ -37,6 +39,8 @@ def create_application() -> FastAPI:
     application.include_router(auth.router)
     application.include_router(misp.router)
     application.include_router(ioc.router)
+    application.include_router(bulk.router)
+    application.include_router(bulk_sse.router)
     application.include_router(v1_me.router)
 
     @application.get("/health")

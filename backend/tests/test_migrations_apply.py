@@ -9,6 +9,13 @@ import pytest
 from app.db.apply_sql import load_all_migration_statements, load_migration_statements
 
 
+def test_migration_004_adds_position_column() -> None:
+    stmts = load_migration_statements("004_ioc_job_item_position.sql")
+    joined = "\n".join(stmts).lower()
+    assert "ioc_job_items" in joined
+    assert "position" in joined
+
+
 def test_migration_001_splits_into_statements() -> None:
     stmts = load_migration_statements("001_initial.sql")
     assert len(stmts) >= 10

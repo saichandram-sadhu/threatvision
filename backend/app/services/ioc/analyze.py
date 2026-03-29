@@ -24,6 +24,7 @@ async def analyze_ioc_value(
     *,
     user_id: str,
     raw_ioc: str,
+    log_activity: bool = True,
 ) -> AnalyzeResponse:
     ioc_type, normalized = classify_ioc(raw_ioc)
     search_val = search_value_for_misp(ioc_type, normalized)
@@ -61,7 +62,8 @@ async def analyze_ioc_value(
     )
     aggregate = aggregate_from_sources(sources)
 
-    await _log_activity(pool, user_id, raw_ioc, aggregate.verdict, sources)
+    if log_activity:
+        await _log_activity(pool, user_id, raw_ioc, aggregate.verdict, sources)
 
     return AnalyzeResponse(
         ioc=IocPayload(raw=raw_ioc, normalized=normalized, type=ioc_type),
