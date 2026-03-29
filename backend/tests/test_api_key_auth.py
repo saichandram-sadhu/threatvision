@@ -63,8 +63,6 @@ def test_v1_me_with_pool_override() -> None:
 
 
 def test_v1_me_rejects_bad_key_with_pool_override() -> None:
-    settings = get_settings()
-
     class FakePool:
         async def fetchrow(self, query: str, d: str):
             return None

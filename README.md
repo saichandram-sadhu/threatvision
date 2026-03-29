@@ -42,6 +42,8 @@ Full-stack cybersecurity IOC analysis and threat intelligence platform (MISP-cen
 
 **Terminal 1 — API**
 
+Set `INTERNAL_JWT_SECRET`, `BFF_SERVICE_KEY`, and `API_KEY_PEPPER` in `.env` (see `.env.example`) before starting the API.
+
 ```powershell
 cd threatvision\backend
 .\.venv\Scripts\activate
