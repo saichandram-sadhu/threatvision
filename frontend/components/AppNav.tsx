@@ -8,7 +8,7 @@ export function AppNav() {
 
   return (
     <header className="border-b border-tv-border bg-tv-void/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center gap-6">
           <Link
             href="/dashboard"
@@ -22,6 +22,9 @@ export function AppNav() {
             </Link>
             <Link href="/settings" className="hover:text-tv-cyan">
               Settings
+            </Link>
+            <Link href="/settings/integrations" className="hover:text-tv-cyan">
+              Integrations
             </Link>
           </nav>
         </div>
