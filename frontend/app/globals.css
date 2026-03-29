@@ -2,22 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  ThreatVision design tokens (M11.3) — void black, cyan / purple accents, mono for code.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tv-void: #050508;
+  --tv-surface: #0c0e14;
+  --tv-border: #1e2433;
+  --tv-fg: #e8eaef;
+  --tv-muted: #8b92a8;
+  --tv-cyan: #22d3ee;
+  --tv-purple: #a78bfa;
+  --tv-accent: #c084fc;
+  --threat-malicious: #ff2d55;
+  --threat-suspicious: #ff9500;
+  --threat-clean: #00ff88;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--tv-fg);
+  background: var(--tv-void);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-exo), var(--font-inter), system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
 
 @layer utilities {

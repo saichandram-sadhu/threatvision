@@ -50,7 +50,12 @@ All routes expect `Authorization: Bearer <internal JWT>` from the BFF exchange.
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Frontend | Google OAuth (optional locally) |
 | `GITHUB_ID` / `GITHUB_SECRET` | Frontend | GitHub OAuth (optional locally) |
 | `NEXT_PUBLIC_APP_URL` | Frontend | Browser-facing app URL |
+| `BACKEND_URL` | Frontend (server) | FastAPI origin for `fetchBackend` and `/api/threatvision/*` proxy |
 | `GEMINI_API_KEY` | Backend | Executive summary in PDF (optional) |
+
+### Browser → FastAPI (M11)
+
+After email/password sign-in, the browser calls **`/api/threatvision/<fastapi-path>`** (same origin). The Next.js route exchanges an internal JWT (`BFF_SERVICE_KEY` + `POST /internal/auth/exchange`) and forwards to **`BACKEND_URL`**. OAuth (Google/GitHub) is optional; BFF calls require a credentials session (Postgres user UUID).
 
 ### Run two processes
 
