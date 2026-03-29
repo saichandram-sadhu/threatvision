@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -12,6 +13,7 @@ export function RegisterForm() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,29 +28,43 @@ export function RegisterForm() {
     const data = await res.json().catch(() => ({}));
     setPending(false);
     if (!res.ok) {
-      setError(typeof data.detail === "string" ? data.detail : "Registration failed");
+      const d = data.detail;
+      const msg =
+        typeof d === "string"
+          ? d
+          : Array.isArray(d) && d[0]?.msg
+            ? String(d[0].msg)
+            : "Registration failed";
+      setError(msg);
       return;
     }
     setApiKey(data.api_key as string);
   }
 
   return (
-    <div className="w-full max-w-md space-y-8 rounded-xl border border-tv-border bg-tv-surface p-8 shadow-lg shadow-tv-purple/5">
+    <motion.div
+      className="w-full max-w-md space-y-8 rounded-2xl border border-white/[0.08] bg-tv-surface/40 p-8 shadow-2xl shadow-black/40 ring-1 ring-white/[0.06] backdrop-blur-xl"
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div>
-        <h1 className="font-display text-2xl font-bold text-tv-cyan">Create account</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-tv-cyan drop-shadow-[0_0_24px_rgba(34,211,238,0.25)]">
+          Create account
+        </h1>
         <p className="mt-1 text-sm text-tv-muted">Register via ThreatVision API</p>
       </div>
 
       {apiKey ? (
         <div className="space-y-4">
           <p className="text-sm text-tv-muted">Save your API key — it is shown only once.</p>
-          <pre className="overflow-x-auto rounded-md border border-tv-border bg-tv-void p-3 font-mono text-xs text-tv-cyan">
+          <pre className="overflow-x-auto rounded-lg border border-white/[0.08] bg-tv-void/80 p-3 font-mono text-xs text-tv-cyan">
             {apiKey}
           </pre>
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="w-full rounded-md bg-tv-purple px-4 py-2 font-medium text-tv-void hover:opacity-90"
+            className="w-full rounded-lg bg-tv-purple px-4 py-2.5 font-medium text-tv-void shadow-lg shadow-tv-purple/25 transition hover:opacity-95"
           >
             Continue to sign in
           </button>
@@ -64,7 +80,7 @@ export function RegisterForm() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-md border border-tv-border bg-tv-void px-3 py-2 text-tv-fg outline-none focus:border-tv-cyan"
+              className="mt-1 w-full rounded-lg border border-white/[0.08] bg-tv-void/80 px-3 py-2 text-tv-fg outline-none ring-tv-cyan/30 focus:border-tv-cyan/60 focus:ring-2"
             />
           </div>
           <div>
@@ -77,7 +93,7 @@ export function RegisterForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-tv-border bg-tv-void px-3 py-2 text-tv-fg outline-none focus:border-tv-cyan"
+              className="mt-1 w-full rounded-lg border border-white/[0.08] bg-tv-void/80 px-3 py-2 text-tv-fg outline-none ring-tv-cyan/30 focus:border-tv-cyan/60 focus:ring-2"
             />
           </div>
           <div>
@@ -91,14 +107,14 @@ export function RegisterForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-tv-border bg-tv-void px-3 py-2 text-tv-fg outline-none focus:border-tv-cyan"
+              className="mt-1 w-full rounded-lg border border-white/[0.08] bg-tv-void/80 px-3 py-2 text-tv-fg outline-none ring-tv-cyan/30 focus:border-tv-cyan/60 focus:ring-2"
             />
           </div>
           {error && <p className="text-sm text-threat-malicious">{error}</p>}
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-md bg-tv-cyan px-4 py-2 font-medium text-tv-void hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-lg bg-tv-cyan px-4 py-2.5 font-medium text-tv-void shadow-lg shadow-tv-cyan/20 transition hover:opacity-95 disabled:opacity-50"
           >
             {pending ? "Creating…" : "Register"}
           </button>
@@ -111,6 +127,6 @@ export function RegisterForm() {
           Sign in
         </Link>
       </p>
-    </div>
+    </motion.div>
   );
 }
