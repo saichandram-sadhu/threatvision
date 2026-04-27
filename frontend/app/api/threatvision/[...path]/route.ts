@@ -37,7 +37,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   const incoming = new URL(request.url);
-  const target = `${apiBase}/${subpath}${incoming.search}`;
+  const target = `${apiBase}/api/v1/${subpath}${incoming.search}`;
 
   const headers = new Headers();
   const ct = request.headers.get("content-type");

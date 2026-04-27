@@ -90,7 +90,7 @@ resource "aws_lb_listener_rule" "backend" {
 
   condition {
     path_pattern {
-      values = ["/api/*", "/internal/*", "/auth/*", "/admin/*", "/settings/*"]
+      values = ["/api/v1/*", "/internal/*", "/api/webhook/*"]
     }
   }
 }
@@ -106,23 +106,7 @@ resource "aws_lb_listener_rule" "backend_2" {
 
   condition {
     path_pattern {
-      values = ["/ioc/*", "/bulk/*", "/reports/*", "/v1/*", "/stats/*"]
-    }
-  }
-}
-
-resource "aws_lb_listener_rule" "backend_3" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 102
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/activity/*", "/me/*", "/health", "/docs", "/openapi.json"]
+      values = ["/auth/*", "/health", "/docs", "/openapi.json"]
     }
   }
 }
