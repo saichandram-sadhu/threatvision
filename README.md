@@ -1,5 +1,9 @@
 # 🛡️ ThreatVision: The Ultimate Threat Intelligence Platform
 
+<p align="center">
+  <img src="docs/assets/logo.png" width="200" alt="ThreatVision Logo">
+</p>
+
 ![Hero Banner](docs/assets/hero.png)
 
 <div align="center">
