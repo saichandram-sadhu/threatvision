@@ -11,7 +11,7 @@
 
 **Transforming raw threat data into actionable intelligence with a production-grade DevOps pipeline.**
 
-[Explore the App](http://threatvision-alb-2018723688.ap-south-1.elb.amazonaws.com) • [Report Bug](https://github.com/threatvision/issues) • [Request Feature](https://github.com/threatvision/issues)
+[Explore the App](http://threatvision-alb-2018723688.ap-south-1.elb.amazonaws.com) • [Report Bug](https://github.com/saichandram-sadhu/threatvision/issues) • [Request Feature](https://github.com/saichandram-sadhu/threatvision/issues)
 
 </div>
 
@@ -19,7 +19,7 @@
 
 ## 📽️ Project Vision
 
-**ThreatVision** is not just an application; it's a statement in modern security operations. It bridges the gap between complex MISP data and human-readable insights. This project showcases a full-scale DevOps migration from a local "it works on my machine" state to a globally accessible, resilient AWS infrastructure.
+**ThreatVision** is a statement in modern security operations. It bridges the gap between complex MISP data and human-readable insights. This project showcases a full-scale DevOps migration from a local "it works on my machine" state to a globally accessible, resilient AWS infrastructure.
 
 ---
 
@@ -27,7 +27,19 @@
 
 Our architecture follows the **Well-Architected Framework** principles, ensuring high availability, security, and automated recovery.
 
-![Pipeline Flow](docs/assets/pipeline.png)
+```mermaid
+graph TD
+    A[Developer] -->|Push| B(GitHub Repo)
+    B -->|Trigger| C{GitHub Actions}
+    C -->|Build & Push| D[Amazon ECR]
+    C -->|Provision| E[Terraform]
+    E -->|Manage| F[AWS Infrastructure]
+    F --> G[ALB]
+    G --> H[ECS Fargate Backend]
+    G --> I[ECS Fargate Frontend]
+    H --> J[(Amazon RDS)]
+    I --> H
+```
 
 ### The CI/CD Blueprint
 1.  **Code (GitHub)**: Semantic versioning and trunk-based development.
@@ -44,34 +56,34 @@ Our architecture follows the **Well-Architected Framework** principles, ensuring
 The path to production was paved with technical challenges that we conquered through systematic debugging and automation.
 
 ### 🔴 The 503 Backend Mystery (Fixed)
-*   **Problem**: Backend services kept restarting (0/1 tasks).
-*   **Solution**: Fixed the health check logic in `main.py` and adjusted the ALB `health_check_grace_period` in Terraform to allow enough time for the database pool to warm up.
+*   **Problem**: Backend services kept restarting (0/1 tasks) due to failing health checks.
+*   **Solution**: Improved the database pool warmup logic and adjusted the ALB `health_check_grace_period` in Terraform.
 
 ### 🔴 Proxy 401: The JWT Wall (Fixed)
-*   **Problem**: Settings and Integrations pages returned `401 Unauthorized` behind the AWS Load Balancer.
-*   **Solution**: Refactored the Next.js API proxy to use `getToken` instead of `getServerSession`, ensuring session tokens are correctly forwarded through the AWS network layers.
+*   **Problem**: NextAuth sessions weren't propagating through the ALB network layers.
+*   **Solution**: Refactored the frontend proxy to use `getToken` for reliable session forwarding.
 
 ### 🔴 MISP 405: The Missing Link (Fixed)
-*   **Problem**: MISP Explorer wouldn't load due to `Method Not Allowed`.
-*   **Solution**: Implemented missing `GET` handlers in the FastAPI backend to synchronize state with the frontend's requirements.
+*   **Problem**: MISP Explorer endpoints returned `Method Not Allowed`.
+*   **Solution**: Implemented missing `GET` handlers in the FastAPI backend to support frontend synchronization.
 
 ---
 
-## 📊 Live Platform Sneak Peek
+## 📊 Live Platform Preview
 
 <div align="center">
 
-### 🔌 Seamless Integrations
-![Integrations](docs/assets/integrations.png)
-*Manage MISP, OpenCTI, and custom connectors in one sleek interface.*
+### 🚀 Performance Dashboard
+![Dashboard](docs/assets/dashboard_real.png)
+*Real-time visibility into IOC analyses and system health.*
 
-### 🔍 Threat Explorer
-![MISP Explorer](docs/assets/misp.png)
-*Deep dive into IoCs, attributes, and threat actors with advanced filtering.*
+### 🔌 Integrations & Config
+![Integrations](docs/assets/integrations_real.png)
+*Seamlessly connect MISP, OpenCTI, and custom threat sources.*
 
-### 🔑 Verified Access
-![Registration](docs/assets/registration.png)
-*Secure registration flow with auto-provisioned API keys.*
+### 🔍 MISP Explorer
+![MISP Explorer](docs/assets/misp_real.png)
+*Interactive exploration of threat intelligence events.*
 
 </div>
 
@@ -96,25 +108,14 @@ terraform apply "tfplan"
 # Build the production image
 docker build -t threatvision-backend ./backend
 
-# Authenticate with AWS
+# Ship it to ECR
 aws ecr get-login-password --region ap-south-1 | docker login ...
-
-# Ship it!
 docker push <aws_id>.dkr.ecr.ap-south-1.amazonaws.com/threatvision-backend:latest
-```
-
-### 📡 ECS Maintenance
-```bash
-# Force deployment of latest code
-aws ecs update-service --cluster threatvision-cluster --service threatvision-backend-service --force-new-deployment
-
-# Run database migrations in production
-aws ecs run-task --cluster threatvision-cluster --task-definition threatvision-migration
 ```
 
 ---
 
-## 🛡️ Security First
+## 🛡️ Security Hardening
 - **IAM Least Privilege**: Fine-grained roles for ECS tasks.
 - **VPC Isolation**: RDS and Backend in private subnets.
 - **ALB Encryption**: Managed traffic routing with path-based rules.
