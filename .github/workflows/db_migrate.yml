@@ -55,17 +55,17 @@ jobs:
     - name: Wait for Task to Complete
       run: |
         echo "Waiting for task to stop..."
-        aws ecs wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks ${{ env.TASK_ARN }}
+        aws ecs wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_ARN
         
         echo "Task finished. Checking exit code..."
-        EXIT_CODE=$(aws ecs describe-tasks --cluster ${{ env.ECS_CLUSTER }} --tasks ${{ env.TASK_ARN }} | jq -r '.tasks[0].containers[0].exitCode')
+        EXIT_CODE=$(aws ecs describe-tasks --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_ARN | jq -r '.tasks[0].containers[0].exitCode')
         
         echo "Fetching logs..."
         # Wait a few seconds for logs to flush to CloudWatch
         sleep 5
         aws logs get-log-events \
           --log-group-name "/ecs/threatvision-backend" \
-          --log-stream-name "ecs/threatvision-backend/${{ env.TASK_ID }}" \
+          --log-stream-name "ecs/threatvision-backend/$TASK_ID" \
           --query 'events[*].message' \
           --output text
         
