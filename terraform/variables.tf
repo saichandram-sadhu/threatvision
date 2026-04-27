@@ -27,3 +27,15 @@ variable "bff_service_key" {
   type        = string
   sensitive   = true
 }
+
+variable "api_key_pepper" {
+  description = "API Key Pepper for hashing"
+  type        = string
+  sensitive   = true
+}
+
+variable "superadmin_email" {
+  description = "Superadmin Email for the initial admin account"
+  type        = string
+  default     = "admin@threatvision.dev"
+}

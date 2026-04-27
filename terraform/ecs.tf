@@ -113,8 +113,11 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "POSTGRES_HOST", value = aws_db_instance.postgres.address },
         { name = "POSTGRES_PORT", value = "5432" },
         { name = "POSTGRES_DB", value = "threatvision" },
+        { name = "DATABASE_URL", value = "postgresql://postgres:${var.db_password}@${aws_db_instance.postgres.address}:5432/threatvision" },
         { name = "INTERNAL_JWT_SECRET", value = var.internal_jwt_secret },
         { name = "BFF_SERVICE_KEY", value = var.bff_service_key },
+        { name = "API_KEY_PEPPER", value = var.api_key_pepper },
+        { name = "SUPERADMIN_EMAIL", value = var.superadmin_email },
         { name = "PYTHONUNBUFFERED", value = "1" }
       ]
       logConfiguration = {
