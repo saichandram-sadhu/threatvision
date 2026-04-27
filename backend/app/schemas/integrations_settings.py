@@ -61,6 +61,7 @@ class TestEnrichersBody(BaseModel):
     """Optional inline secrets merged over DB for probing only (not saved)."""
 
     secrets_override: dict[str, str] | None = None
+    source_id: str | None = None
 
 
 class TestEnrichersOut(BaseModel):

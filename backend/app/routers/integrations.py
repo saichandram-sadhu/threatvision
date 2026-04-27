@@ -200,6 +200,8 @@ async def test_enrichers(
         for e in CATALOG_ORDER:
             if e.id == "misp":
                 continue
+            if body.source_id and e.id != body.source_id:
+                continue
             if not toggle_enabled(toggles_snap, e.id, default=True):
                 results.append(
                     EnricherProbeResult(

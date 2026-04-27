@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 import { MispExplorerPanel } from "@/components/misp/MispExplorerPanel";
 import type {
@@ -22,6 +22,14 @@ export function IntegrationsSettingsClient() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [probeResults, setProbeResults] = useState<EnricherProbeResult[] | null>(null);
 
+  const debounceRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const mispTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mispRef = useRef({ url: "", key: "" });
+
+  useEffect(() => {
+    mispRef.current = { url: mispUrl, key: mispKey };
+  }, [mispUrl, mispKey]);
+
   const load = useCallback(async () => {
     setLoadError(null);
     try {
@@ -35,10 +43,15 @@ export function IntegrationsSettingsClient() {
       setData(j);
       setMispUrl(j.misp.base_url ?? "");
       const t: Record<string, boolean> = {};
+      const sec: Record<string, string> = {};
       for (const s of j.sources) {
         t[s.id] = s.enabled;
+        if (s.configured && s.secret_key) sec[s.secret_key] = "********";
       }
       setToggles(t);
+      setSecrets(sec);
+      if (j.misp.key_configured) setMispKey("********");
+      else setMispKey("");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Network error");
     }
@@ -50,17 +63,25 @@ export function IntegrationsSettingsClient() {
 
   const mispExplorerEnabled = Boolean(data?.misp.explorer_available);
 
-  async function onTestMisp() {
-    setMispTestMsg(null);
-    setBusy(true);
+  async function onTestMisp(isAuto = false, overrideUrl?: string, overrideKey?: string) {
+    if (!isAuto) {
+      setMispTestMsg(null);
+      setBusy(true);
+    } else {
+      setMispTestMsg("Testing MISP connection...");
+    }
     try {
+      const u = overrideUrl !== undefined ? overrideUrl : mispUrl;
+      const k = overrideKey !== undefined ? overrideKey : mispKey;
+      const finalKey = k.trim() === "********" ? undefined : (k.trim() || undefined);
+
       const res = await fetch("/api/threatvision/settings/misp/test", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          base_url: mispUrl.trim() || undefined,
-          api_key: mispKey.trim() || undefined,
+          base_url: u.trim() || undefined,
+          api_key: finalKey,
         }),
       });
       const j = (await res.json()) as { ok: boolean; version?: string; detail?: string; resolution?: string };
@@ -72,7 +93,7 @@ export function IntegrationsSettingsClient() {
     } catch (e) {
       setMispTestMsg(e instanceof Error ? e.message : "Network error");
     } finally {
-      setBusy(false);
+      if (!isAuto) setBusy(false);
     }
   }
 
@@ -82,7 +103,7 @@ export function IntegrationsSettingsClient() {
     try {
       const secretPayload: Record<string, string> = {};
       for (const [k, v] of Object.entries(secrets)) {
-        if (v.trim()) secretPayload[k] = v.trim();
+        if (v.trim() && v !== "********") secretPayload[k] = v.trim();
       }
       const res = await fetch("/api/threatvision/settings/integrations", {
         method: "PUT",
@@ -90,7 +111,7 @@ export function IntegrationsSettingsClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           misp_base_url: mispUrl.trim() || undefined,
-          misp_api_key: mispKey.trim() || undefined,
+          misp_api_key: mispKey.trim() && mispKey !== "********" ? mispKey.trim() : undefined,
           source_toggles: toggles,
           secrets: secretPayload,
         }),
@@ -109,8 +130,6 @@ export function IntegrationsSettingsClient() {
         return;
       }
       const savedBody = (await res.json()) as IntegrationsPutResponse;
-      setMispKey("");
-      setSecrets({});
       const n = Object.keys(secretPayload).length;
       const slots =
         savedBody.saved_secret_slots?.length && savedBody.saved_secret_slots.length > 0
@@ -125,13 +144,23 @@ export function IntegrationsSettingsClient() {
     }
   }
 
-  async function onTestAllEnrichers() {
-    setProbeResults(null);
-    setBusy(true);
+  async function onTestEnrichers(sourceId?: string, overrideSecrets?: Record<string, string>) {
+    if (!sourceId) {
+      setProbeResults(null);
+      setBusy(true);
+    } else {
+      setProbeResults((prev) => {
+        const p = prev || [];
+        const loadingStatus = { id: sourceId, display_name: sourceId, status: "Testing...", detail: "Auto-test in progress" };
+        return [loadingStatus, ...p.filter(x => x.id !== sourceId)];
+      });
+    }
+
     try {
+      const secretsToUse = overrideSecrets || secrets;
       const override: Record<string, string> = {};
-      for (const [k, v] of Object.entries(secrets)) {
-        if (v.trim()) override[k] = v.trim();
+      for (const [k, v] of Object.entries(secretsToUse)) {
+        if (v.trim() && v !== "********") override[k] = v.trim();
       }
       const res = await fetch("/api/threatvision/settings/integrations/test-enrichers", {
         method: "POST",
@@ -139,33 +168,48 @@ export function IntegrationsSettingsClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           secrets_override: Object.keys(override).length ? override : undefined,
+          source_id: sourceId,
         }),
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { detail?: string };
-        setProbeResults([
-          {
-            id: "_error",
-            display_name: "Request",
+        const errResult = {
+            id: sourceId || "_error",
+            display_name: sourceId || "Request",
             status: "failed",
             detail: typeof j.detail === "string" ? j.detail : `HTTP ${res.status}`,
-          },
-        ]);
+        };
+        if (sourceId) {
+           setProbeResults((prev) => [errResult, ...(prev || []).filter(x => x.id !== sourceId)]);
+        } else {
+           setProbeResults([errResult]);
+        }
         return;
       }
       const j = (await res.json()) as { results: EnricherProbeResult[] };
-      setProbeResults(j.results);
+      if (sourceId) {
+         setProbeResults((prev) => {
+             const newResults = j.results.filter(x => x.id === sourceId);
+             if (!newResults.length) return prev;
+             return [...newResults, ...(prev || []).filter(x => x.id !== sourceId)];
+         });
+      } else {
+         setProbeResults(j.results);
+      }
     } catch (e) {
-      setProbeResults([
-        {
-          id: "_error",
-          display_name: "Request",
+      const errResult = {
+          id: sourceId || "_error",
+          display_name: sourceId || "Request",
           status: "failed",
           detail: e instanceof Error ? e.message : "Network error",
-        },
-      ]);
+      };
+      if (sourceId) {
+         setProbeResults((prev) => [errResult, ...(prev || []).filter(x => x.id !== sourceId)]);
+      } else {
+         setProbeResults([errResult]);
+      }
     } finally {
-      setBusy(false);
+      if (!sourceId) setBusy(false);
     }
   }
 
@@ -173,8 +217,37 @@ export function IntegrationsSettingsClient() {
     setToggles((prev) => ({ ...prev, [id]: v }));
   }
 
-  function setSecret(key: string, v: string) {
-    setSecrets((prev) => ({ ...prev, [key]: v }));
+  function setSecretAndAutoTest(key: string, v: string, sourceId: string) {
+    setSecrets((prev) => {
+      const newSecrets = { ...prev, [key]: v };
+      if (v.trim() && v !== "********") {
+         if (debounceRef.current[sourceId]) clearTimeout(debounceRef.current[sourceId]);
+         debounceRef.current[sourceId] = setTimeout(() => {
+             void onTestEnrichers(sourceId, newSecrets);
+         }, 800);
+      }
+      return newSecrets;
+    });
+  }
+
+  function handleMispKeyChange(v: string) {
+    setMispKey(v);
+    if (v.trim() && v !== "********") {
+       if (mispTimeoutRef.current) clearTimeout(mispTimeoutRef.current);
+       mispTimeoutRef.current = setTimeout(() => {
+           void onTestMisp(true, mispRef.current.url, v);
+       }, 800);
+    }
+  }
+
+  function handleMispUrlChange(v: string) {
+    setMispUrl(v);
+    if (v.trim()) {
+       if (mispTimeoutRef.current) clearTimeout(mispTimeoutRef.current);
+       mispTimeoutRef.current = setTimeout(() => {
+           void onTestMisp(true, v, mispRef.current.key);
+       }, 800);
+    }
   }
 
   if (loadError) {
@@ -208,7 +281,7 @@ export function IntegrationsSettingsClient() {
             <label className="block text-sm text-tv-muted">Base URL</label>
             <input
               value={mispUrl}
-              onChange={(e) => setMispUrl(e.target.value)}
+              onChange={(e) => handleMispUrlChange(e.target.value)}
               className="mt-1 w-full rounded-lg border border-white/[0.08] bg-tv-void/80 px-3 py-2 font-mono text-sm text-tv-fg outline-none focus:border-tv-cyan/60 focus:ring-2 focus:ring-tv-cyan/30"
               placeholder="https://misp.example.org"
               autoComplete="off"
@@ -219,7 +292,7 @@ export function IntegrationsSettingsClient() {
             <input
               type="password"
               value={mispKey}
-              onChange={(e) => setMispKey(e.target.value)}
+              onChange={(e) => handleMispKeyChange(e.target.value)}
               className="mt-1 w-full rounded-lg border border-white/[0.08] bg-tv-void/80 px-3 py-2 font-mono text-sm text-tv-fg outline-none focus:border-tv-cyan/60 focus:ring-2 focus:ring-tv-cyan/30"
               placeholder={data.misp.key_configured ? "•••••••• (leave blank to keep)" : "Required to save"}
               autoComplete="off"
@@ -272,7 +345,7 @@ export function IntegrationsSettingsClient() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => void onTestAllEnrichers()}
+            onClick={() => void onTestEnrichers()}
             className="rounded-lg border border-tv-border px-3 py-1.5 text-sm text-tv-muted hover:border-tv-cyan hover:text-tv-cyan disabled:opacity-50"
           >
             Test all (HTTP probes)
@@ -307,6 +380,16 @@ export function IntegrationsSettingsClient() {
                   />
                   Enabled
                 </label>
+                {s.secret_key && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void onTestEnrichers(s.id)}
+                    className="ml-4 rounded-lg border border-tv-cyan/30 bg-tv-cyan/10 px-3 py-1 text-xs text-tv-cyan hover:bg-tv-cyan/20 disabled:opacity-50"
+                  >
+                    Test
+                  </button>
+                )}
               </div>
               {s.secret_key && (
                 <div className="mt-3">
@@ -316,7 +399,7 @@ export function IntegrationsSettingsClient() {
                   <input
                     type="password"
                     value={secrets[s.secret_key] ?? ""}
-                    onChange={(e) => setSecret(s.secret_key!, e.target.value)}
+                    onChange={(e) => setSecretAndAutoTest(s.secret_key!, e.target.value, s.id)}
                     className="mt-1 w-full rounded-lg border border-white/[0.08] bg-tv-void/80 px-3 py-2 font-mono text-sm text-tv-fg outline-none focus:border-tv-cyan/60"
                     placeholder={s.configured ? "•••••••• (leave blank to keep)" : "Paste key to store"}
                     autoComplete="off"
@@ -341,9 +424,11 @@ export function IntegrationsSettingsClient() {
                     className={
                       r.status === "ok"
                         ? "text-threat-clean"
-                        : r.status === "failed"
-                          ? "text-threat-malicious"
-                          : "text-tv-muted"
+                        : r.status === "Testing..."
+                          ? "text-tv-cyan animate-pulse"
+                          : r.status === "failed"
+                            ? "text-threat-malicious"
+                            : "text-tv-muted"
                     }
                   >
                     {r.status}
