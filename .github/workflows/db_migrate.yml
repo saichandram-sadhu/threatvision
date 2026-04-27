@@ -2,7 +2,9 @@ name: Run Database Migrations
 
 on:
   workflow_dispatch:
-
+  push:
+    paths:
+      - '.github/workflows/db_migrate.yml'
 env:
   AWS_REGION: ap-south-1
   ECS_CLUSTER: threatvision-cluster
