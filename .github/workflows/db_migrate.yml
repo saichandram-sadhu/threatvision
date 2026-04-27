@@ -1,0 +1,77 @@
+name: Run Database Migrations
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-south-1
+  ECS_CLUSTER: threatvision-cluster
+  ECS_BACKEND_TASK_DEFINITION: threatvision-backend-task
+
+jobs:
+  migrate:
+    name: Run DB Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Get Subnet and Security Group
+      id: get-network-config
+      run: |
+        # Get the subnets and security group from the backend service to use for the standalone task
+        SERVICE_JSON=$(aws ecs describe-services --cluster ${{ env.ECS_CLUSTER }} --services threatvision-backend-service)
+        SUBNETS=$(echo $SERVICE_JSON | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.subnets | join(",")')
+        SECURITY_GROUPS=$(echo $SERVICE_JSON | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.securityGroups | join(",")')
+        
+        echo "SUBNETS=$SUBNETS" >> $GITHUB_ENV
+        echo "SECURITY_GROUPS=$SECURITY_GROUPS" >> $GITHUB_ENV
+
+    - name: Run ECS Task for Migrations
+      id: run-task
+      run: |
+        echo "Starting migration task..."
+        TASK_JSON=$(aws ecs run-task \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --task-definition ${{ env.ECS_BACKEND_TASK_DEFINITION }} \
+          --launch-type FARGATE \
+          --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=ENABLED}" \
+          --overrides '{"containerOverrides": [{"name": "threatvision-backend", "command": ["python", "scripts/apply_migrations.py"]}]}' \
+          --started-by "github-actions-migration")
+        
+        TASK_ARN=$(echo $TASK_JSON | jq -r '.tasks[0].taskArn')
+        echo "Task ARN: $TASK_ARN"
+        echo "TASK_ARN=$TASK_ARN" >> $GITHUB_ENV
+        
+        # Extract task ID to get log stream name
+        TASK_ID=$(echo $TASK_ARN | awk -F'/' '{print $3}')
+        echo "TASK_ID=$TASK_ID" >> $GITHUB_ENV
+
+    - name: Wait for Task to Complete
+      run: |
+        echo "Waiting for task to stop..."
+        aws ecs wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks ${{ env.TASK_ARN }}
+        
+        echo "Task finished. Checking exit code..."
+        EXIT_CODE=$(aws ecs describe-tasks --cluster ${{ env.ECS_CLUSTER }} --tasks ${{ env.TASK_ARN }} | jq -r '.tasks[0].containers[0].exitCode')
+        
+        echo "Fetching logs..."
+        # Wait a few seconds for logs to flush to CloudWatch
+        sleep 5
+        aws logs get-log-events \
+          --log-group-name "/ecs/threatvision-backend" \
+          --log-stream-name "ecs/threatvision-backend/${{ env.TASK_ID }}" \
+          --query 'events[*].message' \
+          --output text
+        
+        if [ "$EXIT_CODE" != "0" ]; then
+          echo "Migration failed with exit code $EXIT_CODE"
+          exit 1
+        else
+          echo "Migration completed successfully!"
+        fi
