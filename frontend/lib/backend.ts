@@ -7,8 +7,11 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 
+/** Default matches local README (port 8001 avoids common clash with other apps on :8000). */
+const DEFAULT_BACKEND_URL = "http://127.0.0.1:8001";
+
 export function getBackendUrl(): string {
-  const u = process.env.BACKEND_URL?.trim() || "http://localhost:8000";
+  const u = process.env.BACKEND_URL?.trim() || DEFAULT_BACKEND_URL;
   return u.replace(/\/$/, "");
 }
 
@@ -19,25 +22,57 @@ export function isBackendLinkedUserId(id: string): boolean {
   );
 }
 
-export async function exchangeInternalJwt(userId: string, role: string): Promise<string> {
+/**
+ * Exchange internal JWT and return the API origin that accepted it.
+ * Tries ``BACKEND_URL`` first, then ``127.0.0.1:8001`` when the first returns 404 (wrong app on :8000).
+ */
+export async function getInternalJwtAndApiBase(
+  userId: string,
+  role: string,
+): Promise<{ token: string; apiBase: string }> {
   const key = process.env.BFF_SERVICE_KEY;
   if (!key) {
     throw new Error("BFF_SERVICE_KEY is not configured");
   }
-  const res = await fetch(`${getBackendUrl()}/internal/auth/exchange`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Service-Key": key,
-    },
-    body: JSON.stringify({ user_id: userId, role }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Internal JWT exchange failed (${res.status}): ${text.slice(0, 200)}`);
+  const body = JSON.stringify({ user_id: userId, role });
+  const hdrs: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Service-Key": key,
+  };
+
+  const candidates = [
+    getBackendUrl().replace(/\/$/, ""),
+    DEFAULT_BACKEND_URL.replace(/\/$/, ""),
+  ];
+  const seen = new Set<string>();
+  let lastStatus = 0;
+  let lastText = "";
+
+  for (const apiBase of candidates) {
+    if (seen.has(apiBase)) continue;
+    seen.add(apiBase);
+    const res = await fetch(`${apiBase}/internal/auth/exchange`, {
+      method: "POST",
+      headers: hdrs,
+      body,
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { access_token: string };
+      return { token: data.access_token, apiBase };
+    }
+    lastStatus = res.status;
+    lastText = await res.text();
+    if (res.status !== 404) {
+      break;
+    }
   }
-  const data = (await res.json()) as { access_token: string };
-  return data.access_token;
+
+  throw new Error(`Internal JWT exchange failed (${lastStatus}): ${lastText.slice(0, 200)}`);
+}
+
+export async function exchangeInternalJwt(userId: string, role: string): Promise<string> {
+  const { token } = await getInternalJwtAndApiBase(userId, role);
+  return token;
 }
 
 export type FetchBackendSession = {
@@ -71,8 +106,8 @@ export async function fetchBackend(
     );
   }
   const fetchInit = requestInitWithoutSession(init);
-  const token = await exchangeInternalJwt(session.user.id, session.user.role);
-  const url = `${getBackendUrl()}${path.startsWith("/") ? path : `/${path}`}`;
+  const { token, apiBase } = await getInternalJwtAndApiBase(session.user.id, session.user.role);
+  const url = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
   const headers = new Headers(fetchInit.headers);
   headers.set("Authorization", `Bearer ${token}`);
   return fetch(url, { ...fetchInit, headers });

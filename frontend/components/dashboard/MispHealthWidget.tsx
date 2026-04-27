@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import type { IntegrationsGetResponse } from "@/lib/types/integrations";
+
 type ExplorerJson = {
   connected: boolean;
   base_url: string;
@@ -72,6 +74,19 @@ export function MispHealthWidget({ enabled }: { enabled: boolean }) {
       return;
     }
     try {
+      const integRes = await fetch("/api/threatvision/settings/integrations", { credentials: "include" });
+      if (integRes.ok) {
+        const integ = (await integRes.json()) as IntegrationsGetResponse;
+        if (!integ.misp.explorer_available) {
+          setState({
+            kind: "disconnected",
+            message:
+              "MISP is not configured yet. Add URL and API key under Integrations (or platform MISP in the API).",
+          });
+          return;
+        }
+      }
+
       const res = await fetch("/api/threatvision/misp/explorer", { credentials: "include" });
       if (res.status === 400) {
         const j = (await res.json().catch(() => ({}))) as { detail?: string };

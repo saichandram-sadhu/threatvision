@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IntegrationSourceState(BaseModel):
@@ -20,6 +20,10 @@ class IntegrationSourceState(BaseModel):
 class MispStateOut(BaseModel):
     base_url: str | None = None
     key_configured: bool = False
+    explorer_available: bool = Field(
+        default=False,
+        description="True when URL+key resolve (user settings, platform fallback, or env/.env).",
+    )
 
 
 class IntegrationsGetOut(BaseModel):
@@ -30,6 +34,8 @@ class IntegrationsGetOut(BaseModel):
 class IntegrationsPutBody(BaseModel):
     """Non-empty ``secrets`` values overwrite that key; omitted keys are unchanged."""
 
+    model_config = ConfigDict(extra="ignore")
+
     misp_base_url: str | None = None
     misp_api_key: str | None = Field(default=None, description="Omit or empty to keep existing key")
     source_toggles: dict[str, bool] | None = None
@@ -38,6 +44,10 @@ class IntegrationsPutBody(BaseModel):
 
 class IntegrationsPutOut(BaseModel):
     saved: bool = True
+    saved_secret_slots: list[str] = Field(
+        default_factory=list,
+        description="Canonical secret slot ids stored after this save (names only).",
+    )
 
 
 class EnricherProbeResult(BaseModel):

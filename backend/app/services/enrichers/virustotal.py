@@ -39,6 +39,14 @@ async def enrich_virustotal(ctx: EnricherContext) -> SourceResult:
                 ["IOC not present in VirusTotal corpus."],
                 {},
             )
+        if e.response.status_code == 401:
+            return unavailable(
+                "virustotal",
+                "VirusTotal",
+                "invalid_api_key",
+                "VirusTotal returned 401 — the API key is invalid or revoked. "
+                "Copy your private API key from virusTotal.com (API key page), paste it in Integrations with no spaces, and save.",
+            )
         if e.response.status_code == 429:
             return unavailable("virustotal", "VirusTotal", "http_429", "VirusTotal rate limit (429).")
         return unavailable("virustotal", "VirusTotal", "http_error", str(e))

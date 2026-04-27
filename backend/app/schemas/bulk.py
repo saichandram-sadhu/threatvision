@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.services.ioc.sanitize import sanitize_ioc_input
+
 
 class BulkCreateIn(BaseModel):
     iocs: list[str] = Field(..., min_length=1, max_length=500)
@@ -11,7 +13,8 @@ class BulkCreateIn(BaseModel):
     @field_validator("iocs")
     @classmethod
     def nonempty_and_bounded(cls, v: list[str]) -> list[str]:
-        out = [s.strip() for s in v if s and s.strip()]
+        out = [sanitize_ioc_input(s) for s in v]
+        out = [s for s in out if s]
         if not out:
             raise ValueError("At least one non-empty IOC is required")
         if len(out) > 500:

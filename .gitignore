@@ -19,6 +19,7 @@ build/
 .env
 .env.*
 !.env.example
+.dev_login_credentials.txt
 
 # Next.js
 frontend/.next/
@@ -40,3 +41,16 @@ htmlcov/
 # Logs
 *.log
 npm-debug.log*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

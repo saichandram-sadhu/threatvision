@@ -12,13 +12,20 @@ from app.auth.internal_jwt import (
 from app.config import get_settings
 from app.deps import get_pool
 from app.main import create_application
+from app.services.crypto import encrypt_secret
 
 
 class _FakePoolGetIntegrations:
     async def fetchrow(self, query: str, *args: object):
-        if "misp_base_url" in query and "source_toggles" not in query:
-            return {"misp_base_url": "https://misp.example", "misp_api_key_ciphertext": "enc"}
-        return {"source_toggles": {"virustotal": True}, "secrets_ciphertext": None}
+        q = query.replace("\n", " ")
+        if "FROM platform_settings" in q:
+            return None
+        if "FROM user_integration_settings" in q:
+            if "misp_base_url" in q:
+                ct = encrypt_secret("test-misp-api-key")
+                return {"misp_base_url": "https://misp.example", "misp_api_key_ciphertext": ct}
+            return {"source_toggles": {"virustotal": True}, "secrets_ciphertext": None}
+        return None
 
 
 class _FakePoolPutIntegrations:
@@ -52,6 +59,7 @@ def test_get_integrations_ok() -> None:
         body = r.json()
         assert body["misp"]["base_url"] == "https://misp.example"
         assert body["misp"]["key_configured"] is True
+        assert body["misp"]["explorer_available"] is True
         ids = {s["id"] for s in body["sources"]}
         assert "virustotal" in ids
         assert "misp" not in ids

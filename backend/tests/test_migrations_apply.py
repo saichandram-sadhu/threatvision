@@ -7,6 +7,7 @@ import os
 import pytest
 
 from app.db.apply_sql import load_all_migration_statements, load_migration_statements
+from app.db.conn_params import connect_pg
 
 
 def test_migration_005_webhook_path_key() -> None:
@@ -41,9 +42,7 @@ async def test_migrations_apply_to_database() -> None:
     if not url:
         pytest.skip("TEST_DATABASE_URL or DATABASE_URL required")
 
-    import asyncpg
-
-    conn = await asyncpg.connect(url)
+    conn = await connect_pg(url)
     try:
         await conn.execute("DROP SCHEMA IF EXISTS public CASCADE")
         await conn.execute("CREATE SCHEMA public")

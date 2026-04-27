@@ -111,7 +111,14 @@ async def misp_explorer(
     if not url or not key:
         raise HTTPException(
             status_code=400,
-            detail="MISP is not configured. Save URL and API key under settings or set platform fallback.",
+            detail=(
+                "MISP is not configured for this API instance. "
+                "Set user MISP settings, or platform fallback in Postgres (platform_settings), "
+                "or PLATFORM_MISP_URL + PLATFORM_MISP_API_KEY in backend/.env. "
+                "After editing .env, restart uvicorn from threatvision/backend. "
+                "If ENCRYPTION_KEY changed, re-run scripts/set_platform_misp_from_env.py. "
+                "GET /health shows platform_misp_configured when the DB row is present."
+            ),
         )
 
     async def fetch() -> MispExplorerResponse:

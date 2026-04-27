@@ -2,11 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
-import {
-  exchangeInternalJwt,
-  getBackendUrl,
-  isBackendLinkedUserId,
-} from "@/lib/backend";
+import { getInternalJwtAndApiBase, isBackendLinkedUserId } from "@/lib/backend";
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
   const session = await getServerSession(authOptions);
@@ -25,8 +21,11 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   let internalJwt: string;
+  let apiBase: string;
   try {
-    internalJwt = await exchangeInternalJwt(session.user.id, session.user.role);
+    const out = await getInternalJwtAndApiBase(session.user.id, session.user.role);
+    internalJwt = out.token;
+    apiBase = out.apiBase;
   } catch (e) {
     const msg = e instanceof Error ? e.message : "exchange failed";
     return NextResponse.json({ error: "bff_exchange_failed", message: msg }, { status: 502 });
@@ -38,7 +37,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   }
 
   const incoming = new URL(request.url);
-  const target = `${getBackendUrl()}/${subpath}${incoming.search}`;
+  const target = `${apiBase}/${subpath}${incoming.search}`;
 
   const headers = new Headers();
   const ct = request.headers.get("content-type");

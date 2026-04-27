@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from cryptography.fernet import Fernet
 
@@ -33,6 +35,11 @@ def test_encrypt_uses_env_when_key_omitted(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_encrypt_missing_env_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No ``ENCRYPTION_KEY`` in environ and no Pydantic-loaded key → error."""
     monkeypatch.delenv("ENCRYPTION_KEY", raising=False)
+    monkeypatch.setattr(
+        "app.config.get_settings",
+        lambda: SimpleNamespace(encryption_key=None),
+    )
     with pytest.raises(CryptoError, match="ENCRYPTION_KEY"):
         encrypt_secret("x")

@@ -13,6 +13,8 @@ from app.services.enrichers.context import EnricherContext
 from app.services.enrichers.runner import run_enrichers
 from app.services.ioc.classify import classify_ioc, search_value_for_misp
 from app.services.ioc.consensus import aggregate_from_sources
+from app.services.ioc.input_errors import IocInputError
+from app.services.ioc.sanitize import sanitize_ioc_input
 from app.services.ioc.integration_snapshot import load_integration_snapshot
 from app.services.ioc.source_catalog import assemble_source_table_with_enrichers
 from app.services.misp.ioc_search import search_misp_for_value
@@ -26,6 +28,9 @@ async def analyze_ioc_value(
     raw_ioc: str,
     log_activity: bool = True,
 ) -> AnalyzeResponse:
+    raw_ioc = sanitize_ioc_input(raw_ioc)
+    if not raw_ioc:
+        raise IocInputError("IOC is empty after sanitization")
     ioc_type, normalized = classify_ioc(raw_ioc)
     search_val = search_value_for_misp(ioc_type, normalized)
 

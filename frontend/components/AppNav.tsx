@@ -32,6 +32,17 @@ export function AppNav() {
             <Link href="/settings/integrations" className="hover:text-tv-cyan">
               Integrations
             </Link>
+            <Link href="/profile" className="hover:text-tv-cyan">
+              Profile
+            </Link>
+            <Link href="/about" className="hover:text-tv-cyan">
+              About
+            </Link>
+            {session?.user?.role === "SUPERADMIN" && (
+              <Link href="/admin" className="hover:text-tv-cyan">
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">

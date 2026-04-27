@@ -22,11 +22,22 @@ export function useMispExplorer(enabled: boolean, intervalMs = 30_000) {
     try {
       const res = await fetch("/api/threatvision/misp/explorer", { credentials: "include" });
       if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { detail?: string; message?: string };
-        const msg =
+        const j = (await res.json().catch(() => ({}))) as {
+          detail?: string | Array<{ msg?: string }>;
+          message?: string;
+          error?: string;
+        };
+        const detailStr =
           typeof j.detail === "string"
             ? j.detail
-            : j.message || `Explorer failed (${res.status})`;
+            : Array.isArray(j.detail)
+              ? j.detail.map((x) => (x && typeof x.msg === "string" ? x.msg : JSON.stringify(x))).join("; ")
+              : undefined;
+        const msg =
+          detailStr ||
+          j.message ||
+          (typeof j.error === "string" ? j.error : undefined) ||
+          `Explorer failed (${res.status})`;
         setState({ data: null, error: msg, loading: false });
         return;
       }

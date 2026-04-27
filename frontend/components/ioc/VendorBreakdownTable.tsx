@@ -65,7 +65,10 @@ export function VendorBreakdownTable({ sources }: { sources: SourceResult[] }) {
   const [mispOpen, setMispOpen] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.08] ring-1 ring-white/[0.04]">
+    <div
+      data-testid="vendor-breakdown"
+      className="overflow-hidden rounded-xl border border-white/[0.08] ring-1 ring-white/[0.04]"
+    >
       <div className="border-b border-tv-border bg-tv-void/50 px-4 py-3">
         <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-tv-muted">
           Vendor breakdown

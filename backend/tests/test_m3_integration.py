@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.config import get_settings
 from app.db.apply_sql import load_all_migration_statements
+from app.db.conn_params import connect_pg
 from app.main import create_application
 from app.services.rate_limit import check_and_increment_daily
 
@@ -27,9 +28,7 @@ async def test_auth_superadmin_and_rate_limit_flow(monkeypatch: pytest.MonkeyPat
     if not url:
         pytest.skip("Set RUN_DB_MIGRATION_TESTS=1 and TEST_DATABASE_URL")
 
-    import asyncpg
-
-    conn = await asyncpg.connect(url)
+    conn = await connect_pg(url)
     try:
         await conn.execute("DROP SCHEMA IF EXISTS public CASCADE")
         await conn.execute("CREATE SCHEMA public")
@@ -77,7 +76,7 @@ async def test_auth_superadmin_and_rate_limit_flow(monkeypatch: pytest.MonkeyPat
         assert r4.status_code == 200
         assert r4.json()["role"] == "USER"
 
-        conn2 = await asyncpg.connect(url)
+        conn2 = await connect_pg(url)
         try:
             await conn2.execute(
                 "UPDATE users SET role = 'SUPERADMIN' WHERE id = $1::uuid",
@@ -101,7 +100,7 @@ async def test_auth_superadmin_and_rate_limit_flow(monkeypatch: pytest.MonkeyPat
         assert me.status_code == 200
         uid_super = me.json()["user_id"]
 
-        conn3 = await asyncpg.connect(url)
+        conn3 = await connect_pg(url)
         try:
             await conn3.execute(
                 "UPDATE users SET daily_limit = 2 WHERE id = $1::uuid",

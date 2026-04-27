@@ -19,6 +19,17 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 See root `../README.md` for environment variables.
 
+## Docker / Railway
+
+Build from this directory (the Dockerfile expects `pyproject.toml`, `README.md`, and `app/` here):
+
+```bash
+docker build -t threatvision-api .
+docker run --rm -p 8000:8000 --env-file .env threatvision-api
+```
+
+Railway: set the service **root** to `backend` (in a monorepo), use **`railway.toml`**, and configure **`PORT`** via the platform (the default start command uses `$PORT`). Set **`CORS_ORIGINS`** to your deployed Next.js origin.
+
 ## PDF reports (WeasyPrint)
 
 `POST /reports/pdf` renders HTML via **Jinja2** and converts with **WeasyPrint**. On Linux servers (e.g. Railway/Docker), install Cairo, Pango, and GDK-Pixbuf (e.g. Debian/Ubuntu: `apt install libcairo2 libpango-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info`). On Windows, WeasyPrint may require extra GTK/runtime setup; if the engine fails to load, the API returns **503** with `pdf_engine_unavailable`.

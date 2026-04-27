@@ -54,3 +54,43 @@ def test_parse_statistics_nested() -> None:
     assert panel.total_events == 12847
     assert panel.total_attributes == 900000
     assert panel.total_objects == 1200
+
+
+def test_parse_feeds_index_wrapped_feed_key() -> None:
+    """MISP may return ``{"Feed": [ ... ]}`` instead of a bare list."""
+    rows = parse_feeds_index(
+        {
+            "Feed": [
+                {
+                    "id": "9",
+                    "name": "Test Feed",
+                    "enabled": "1",
+                    "event_count": 3,
+                }
+            ]
+        }
+    )
+    assert len(rows) == 1
+    assert rows[0].name == "Test Feed"
+    assert rows[0].enabled is True
+    assert rows[0].event_count == 3
+
+
+def test_parse_feeds_index_empty_and_non_list() -> None:
+    assert parse_feeds_index(None) == []
+    assert parse_feeds_index({"feeds": "bad"}) == []
+
+
+def test_parse_statistics_flat_event_keys() -> None:
+    panel = parse_statistics({"event_count": 10, "attribute_count": 20, "object_count": 30})
+    assert panel.total_events == 10
+    assert panel.total_attributes == 20
+    assert panel.total_objects == 30
+
+
+def test_parse_servers_wrapped_servers_key() -> None:
+    rows = parse_servers_index({"servers": [{"id": 1, "name": "local", "push": False, "pull": True}]})
+    assert len(rows) == 1
+    assert rows[0].name == "local"
+    assert rows[0].push is False
+    assert rows[0].pull is True

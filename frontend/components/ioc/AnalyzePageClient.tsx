@@ -159,7 +159,7 @@ export function AnalyzePageClient() {
             <section>
               <h2 className="font-display text-lg font-semibold text-tv-fg">Map</h2>
               <p className="mt-1 text-xs text-tv-muted">
-                Approximate location via ipwho.is (HTTPS). Not a forensic guarantee.
+                Approximate location (server-side lookup; visualization only). Not a forensic guarantee.
               </p>
               <div className="mt-3 overflow-hidden rounded-xl border border-tv-border">
                 {geo && <IocIpMap lat={geo.lat} lng={geo.lng} label={result.ioc.normalized} />}

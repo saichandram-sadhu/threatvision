@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getBackendUrl } from "@/lib/backend";
+import { fetchThreatvisionApi } from "@/lib/threatvisionServerFetch";
 
 /** Public pass-through to FastAPI ``POST /auth/register`` (no internal JWT). */
 export async function POST(request: Request) {
   const body = await request.text();
-  const res = await fetch(`${getBackendUrl()}/auth/register`, {
+  const res = await fetchThreatvisionApi("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body || "{}",

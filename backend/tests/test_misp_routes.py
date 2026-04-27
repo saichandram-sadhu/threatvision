@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.auth.internal_jwt import (
@@ -22,7 +23,10 @@ class _FakePoolUnconfigured:
         return None
 
 
-def test_misp_test_unconfigured_returns_ok_false() -> None:
+def test_misp_test_unconfigured_returns_ok_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PLATFORM_MISP_URL", "")
+    monkeypatch.setenv("PLATFORM_MISP_API_KEY", "")
+    monkeypatch.setenv("THREATVISION_SKIP_LOCAL_ENV_MISP", "1")
     get_settings.cache_clear()
     app = create_application()
 
@@ -50,7 +54,10 @@ def test_misp_test_unconfigured_returns_ok_false() -> None:
         app.dependency_overrides.clear()
 
 
-def test_misp_explorer_unconfigured_returns_400() -> None:
+def test_misp_explorer_unconfigured_returns_400(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PLATFORM_MISP_URL", "")
+    monkeypatch.setenv("PLATFORM_MISP_API_KEY", "")
+    monkeypatch.setenv("THREATVISION_SKIP_LOCAL_ENV_MISP", "1")
     get_settings.cache_clear()
     app = create_application()
 

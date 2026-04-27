@@ -7,7 +7,7 @@ import uuid
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException
 
 from app.auth.internal_jwt import InternalUser, get_current_internal_user
 from app.deps import PoolDep
@@ -23,9 +23,15 @@ from app.schemas.integrations_settings import (
 )
 from app.services.crypto import CryptoError, decrypt_secret, encrypt_secret
 from app.services.integrations.probes import run_probe_for_source
-from app.services.ioc.integration_snapshot import IntegrationSnapshot, load_integration_snapshot, toggle_enabled
+from app.services.integrations.secret_slots import normalize_secrets_dict
+from app.services.ioc.integration_snapshot import (
+    IntegrationSnapshot,
+    load_integration_snapshot,
+    parse_source_toggles,
+    toggle_enabled,
+)
 from app.services.ioc.source_catalog import CATALOG_ORDER
-from app.services.misp.resolve import normalize_misp_base_url
+from app.services.misp.resolve import normalize_misp_base_url, resolve_misp_for_user
 
 router = APIRouter(tags=["integrations"])
 
@@ -47,6 +53,8 @@ async def get_integrations(
     )
     misp_url = row["misp_base_url"] if row else None
     misp_key = bool(row and row["misp_api_key_ciphertext"])
+    _bu, _bk, _tag = await resolve_misp_for_user(pool, user.user_id)
+    explorer_available = bool(_bu and _bk)
 
     sources: list[IntegrationSourceState] = []
     for e in CATALOG_ORDER:
@@ -75,7 +83,11 @@ async def get_integrations(
         )
 
     return IntegrationsGetOut(
-        misp=MispStateOut(base_url=misp_url, key_configured=misp_key),
+        misp=MispStateOut(
+            base_url=misp_url,
+            key_configured=misp_key,
+            explorer_available=explorer_available,
+        ),
         sources=sources,
     )
 
@@ -102,7 +114,7 @@ async def put_integrations(
     misp_ct: str | None = None
 
     if row:
-        toggles = dict(row["source_toggles"] or {})
+        toggles = parse_source_toggles(row["source_toggles"])
         misp_url = row["misp_base_url"]
         misp_ct = row["misp_api_key_ciphertext"]
     if row and row["secrets_ciphertext"]:
@@ -121,15 +133,28 @@ async def put_integrations(
         for k, v in body.secrets.items():
             if v is not None and str(v).strip():
                 secrets[str(k)] = str(v).strip()
+    secrets = normalize_secrets_dict(secrets)
 
     if body.misp_base_url is not None and body.misp_base_url.strip():
         misp_url = normalize_misp_base_url(body.misp_base_url)
 
     if body.misp_api_key is not None and body.misp_api_key.strip():
-        misp_ct = encrypt_secret(body.misp_api_key.strip())
+        try:
+            misp_ct = encrypt_secret(body.misp_api_key.strip())
+        except CryptoError as e:
+            raise HTTPException(
+                status_code=503,
+                detail="Cannot encrypt settings — check ENCRYPTION_KEY in backend environment.",
+            ) from e
 
     secrets_json = json.dumps(secrets)
-    secrets_blob = encrypt_secret(secrets_json)
+    try:
+        secrets_blob = encrypt_secret(secrets_json)
+    except CryptoError as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Cannot encrypt settings — check ENCRYPTION_KEY in backend environment.",
+        ) from e
 
     await pool.execute(
         """
@@ -151,7 +176,7 @@ async def put_integrations(
         misp_ct,
     )
 
-    return IntegrationsPutOut()
+    return IntegrationsPutOut(saved_secret_slots=sorted(secrets.keys()))
 
 
 @router.post("/settings/integrations/test-enrichers", response_model=TestEnrichersOut)
@@ -166,6 +191,7 @@ async def test_enrichers(
         for k, v in body.secrets_override.items():
             if v is not None and str(v).strip():
                 secrets[str(k)] = str(v).strip()
+    secrets = normalize_secrets_dict(secrets)
 
     toggles_snap = IntegrationSnapshot(snapshot.toggles, secrets)
     results: list[EnricherProbeResult] = []

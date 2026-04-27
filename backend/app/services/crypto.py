@@ -23,10 +23,19 @@ def _fernet_from_key(key: str | bytes) -> Fernet:
 
 
 def encryption_key_from_env() -> str:
+    """Prefer ``os.environ``; fall back to Pydantic-loaded ``.env`` (uvicorn does not always export to environ)."""
     raw = os.environ.get(_ENV_KEY)
-    if not raw or not raw.strip():
-        raise CryptoError(f"Missing environment variable {_ENV_KEY}")
-    return raw.strip()
+    if raw and raw.strip():
+        return raw.strip()
+    try:
+        from app.config import get_settings
+
+        sk = get_settings().encryption_key
+        if sk and str(sk).strip():
+            return str(sk).strip()
+    except Exception:  # noqa: BLE001 — settings may be incomplete in odd test harnesses
+        pass
+    raise CryptoError(f"Missing environment variable {_ENV_KEY}")
 
 
 def encrypt_secret(plain: str, *, key: str | bytes | None = None) -> str:

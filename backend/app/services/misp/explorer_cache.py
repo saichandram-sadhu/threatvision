@@ -32,7 +32,10 @@ async def get_explorer_cached_or_fetch(
     if row is not None:
         age = (now - row["updated_at"]).total_seconds()
         if age < CACHE_TTL_SECONDS:
-            return MispExplorerResponse.model_validate(row["payload"])
+            try:
+                return MispExplorerResponse.model_validate(row["payload"])
+            except Exception:  # noqa: BLE001 - tolerate stale/invalid cached payload shape
+                pass
 
     fresh = await fetch()
     dumped = json.dumps(fresh.model_dump(mode="json"), default=str)

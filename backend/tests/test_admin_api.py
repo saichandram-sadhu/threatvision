@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.auth.internal_jwt import create_internal_token
 from app.config import get_settings
 from app.db.apply_sql import load_all_migration_statements
+from app.db.conn_params import connect_pg
 from app.main import create_application
 
 
@@ -26,9 +27,7 @@ async def test_admin_superadmin_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     if not url:
         pytest.skip("Set RUN_DB_MIGRATION_TESTS=1 and TEST_DATABASE_URL")
 
-    import asyncpg
-
-    conn = await asyncpg.connect(url)
+    conn = await connect_pg(url)
     try:
         await conn.execute("DROP SCHEMA IF EXISTS public CASCADE")
         await conn.execute("CREATE SCHEMA public")

@@ -528,9 +528,9 @@
 
 ## Milestone M18 — Testing & QA gate
 
-- [ ] **Step 1:** Backend: pytest coverage on classify, consensus, rate_limit, misp explorer parsers (fixtures), one enricher e2e mock.
-- [ ] **Step 2:** Frontend: Playwright smoke (login stub, analyze page renders table).
-- [ ] **Step 3:** Manual checklist: MISP Docker against explorer + single IOC + feed attribution line.
+- [x] **Step 1:** Backend: pytest coverage on classify, consensus, rate_limit, misp explorer parsers (fixtures), one enricher e2e mock.
+- [x] **Step 2:** Frontend: Playwright smoke (login stub, analyze page renders table).
+- [x] **Step 3:** Manual checklist: MISP Docker against explorer + single IOC + feed attribution line.
 
 ---
 

@@ -6,6 +6,8 @@ from typing import Any
 
 import httpx
 
+from app.config import get_settings
+
 MISP_HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
@@ -14,6 +16,10 @@ MISP_HEADERS = {
 
 def _auth_headers(api_key: str) -> dict[str, str]:
     return {**MISP_HEADERS, "Authorization": api_key}
+
+
+def _tls_verify() -> bool:
+    return get_settings().misp_tls_verify
 
 
 async def misp_get_json(
@@ -28,7 +34,11 @@ async def misp_get_json(
     if not path.startswith("/"):
         path = "/" + path
     url = f"{root}{path}"
-    async with httpx.AsyncClient(timeout=httpx.Timeout(timeout), follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(timeout),
+        follow_redirects=True,
+        verify=_tls_verify(),
+    ) as client:
         r = await client.get(url, headers=_auth_headers(api_key))
         r.raise_for_status()
         return r.json()
@@ -46,7 +56,11 @@ async def misp_post_json(
     if not path.startswith("/"):
         path = "/" + path
     url = f"{root}{path}"
-    async with httpx.AsyncClient(timeout=httpx.Timeout(timeout), follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(timeout),
+        follow_redirects=True,
+        verify=_tls_verify(),
+    ) as client:
         r = await client.post(url, headers=_auth_headers(api_key), json=body)
         r.raise_for_status()
         return r.json()

@@ -1,0 +1,25 @@
+# Local Postgres for ThreatVision (port 55432 on host → avoid clashes with other Postgres / PassFort).
+#
+# MISP: if you run a separate stack (e.g. misp-misp-core-1 on host :80), ThreatVision API on the host uses
+# PLATFORM_MISP_URL=http://127.0.0.1 + PLATFORM_MISP_API_KEY in backend/.env and
+# backend/scripts/set_platform_misp_from_env.py (see README).
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: threatvision-postgres
+    environment:
+      POSTGRES_USER: threatvision
+      POSTGRES_PASSWORD: threatvision
+      POSTGRES_DB: threatvision
+    ports:
+      - "55432:5432"
+    volumes:
+      - threatvision_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U threatvision -d threatvision"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  threatvision_pgdata:

@@ -9,12 +9,33 @@ from dataclasses import dataclass
 import asyncpg
 
 from app.services.crypto import CryptoError, decrypt_secret
+from app.services.integrations.secret_slots import normalize_secrets_dict
 
 
 @dataclass
 class IntegrationSnapshot:
     toggles: dict[str, bool]
     secrets: dict[str, str]
+
+
+def parse_source_toggles(raw: object) -> dict[str, bool]:
+    """asyncpg may return ``jsonb`` as ``dict`` or as a JSON ``str`` depending on codec/version."""
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return {str(k): bool(v) for k, v in raw.items()}
+    if isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return {}
+        try:
+            data = json.loads(s)
+        except json.JSONDecodeError:
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        return {str(k): bool(v) for k, v in data.items()}
+    return {}
 
 
 async def load_integration_snapshot(pool: asyncpg.Pool, user_id: str) -> IntegrationSnapshot:
@@ -29,9 +50,7 @@ async def load_integration_snapshot(pool: asyncpg.Pool, user_id: str) -> Integra
     )
     if row is None:
         return IntegrationSnapshot({}, {})
-    toggles = row["source_toggles"] or {}
-    if not isinstance(toggles, dict):
-        toggles = {}
+    toggles = parse_source_toggles(row["source_toggles"])
     secrets: dict[str, str] = {}
     ct = row["secrets_ciphertext"]
     if ct:
@@ -40,6 +59,7 @@ async def load_integration_snapshot(pool: asyncpg.Pool, user_id: str) -> Integra
             data = json.loads(raw)
             if isinstance(data, dict):
                 secrets = {str(k): str(v) for k, v in data.items() if v is not None}
+                secrets = normalize_secrets_dict(secrets)
         except (CryptoError, json.JSONDecodeError, TypeError):
             secrets = {}
     return IntegrationSnapshot(toggles, secrets)

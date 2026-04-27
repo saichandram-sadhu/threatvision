@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.services.ioc.classify import classify_ioc, search_value_for_misp
+from app.services.ioc.classify import classify_ioc, normalize_ioc_value, search_value_for_misp
 
 
 def test_classify_ipv4() -> None:
@@ -39,3 +39,27 @@ def test_search_value_email_header_extracts_ip() -> None:
     t, n = classify_ioc(body)
     assert t == "email_header"
     assert search_value_for_misp(t, n) == "192.168.1.1"
+
+
+def test_classify_ipv6() -> None:
+    t, n = classify_ioc("2001:db8::1")
+    assert t == "ip"
+    assert ":" in n
+
+
+def test_classify_sha1() -> None:
+    h = "a" * 40
+    t, n = classify_ioc(h)
+    assert t == "hash"
+    assert len(n) == 40
+
+
+def test_normalize_strips_wrapping_quotes() -> None:
+    assert normalize_ioc_value('"evil.example"') == "evil.example"
+    assert normalize_ioc_value("'8.8.8.8'") == "8.8.8.8"
+
+
+def test_classify_domain_with_trailing_dot() -> None:
+    t, n = classify_ioc("Example.COM.")
+    assert t == "domain"
+    assert n == "example.com"

@@ -33,7 +33,11 @@ export function LoginForm({ googleEnabled, githubEnabled }: Props) {
     });
     setPending(false);
     if (res?.error) {
-      setError("Invalid email or password.");
+      setError(
+        res.error === "CredentialsSignin"
+          ? "Invalid email or password."
+          : res.error,
+      );
       return;
     }
     router.push(callbackUrl);
@@ -63,8 +67,8 @@ export function LoginForm({ googleEnabled, githubEnabled }: Props) {
           </label>
           <input
             id="email"
-            type="email"
-            autoComplete="email"
+            type="text"
+            autoComplete="username"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}

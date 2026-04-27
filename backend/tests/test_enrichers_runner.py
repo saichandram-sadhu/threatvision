@@ -8,6 +8,7 @@ import respx
 
 from app.services.enrichers.context import EnricherContext
 from app.services.enrichers.runner import run_enrichers
+from app.services.enrichers.virustotal import enrich_virustotal
 from app.services.ioc.integration_snapshot import IntegrationSnapshot
 from app.services.ioc.source_catalog import assemble_source_table_with_enrichers
 from app.schemas.source_result import SourceResult
@@ -33,6 +34,26 @@ async def test_run_enrichers_otx_ip_clean(respx_mock: respx.MockRouter) -> None:
     assert "otx" in out
     assert out["otx"].status == "ok"
     assert out["otx"].verdict == "clean"
+
+
+@pytest.mark.asyncio
+async def test_enrich_virustotal_401_invalid_api_key(respx_mock: respx.MockRouter) -> None:
+    respx_mock.get(url__regex=r"https://www\.virustotal\.com/api/v3/ip_addresses/.+").mock(
+        return_value=httpx.Response(401, json={"error": {"code": "Unauthorized"}}),
+    )
+    snap = IntegrationSnapshot({}, {"virustotal": "bad-key"})
+    async with httpx.AsyncClient() as client:
+        ctx = EnricherContext(
+            ioc_type="ip",
+            normalized="194.180.49.160",
+            raw_ioc="194.180.49.160",
+            snapshot=snap,
+            client=client,
+        )
+        r = await enrich_virustotal(ctx)
+    assert r.status == "unavailable"
+    assert r.errorCode == "invalid_api_key"
+    assert "401" in (r.detailLines[0] if r.detailLines else "")
 
 
 @pytest.mark.asyncio

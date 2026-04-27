@@ -12,12 +12,14 @@ export function RegisterForm() {
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [pending, setPending] = useState(false);
   const reduceMotion = useReducedMotion();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setAlreadyRegistered(false);
     setApiKey(null);
     setPending(true);
     const res = await fetch("/api/register", {
@@ -28,13 +30,22 @@ export function RegisterForm() {
     const data = await res.json().catch(() => ({}));
     setPending(false);
     if (!res.ok) {
+      if (res.status === 409) {
+        setAlreadyRegistered(true);
+        setError("This email is already in the database — you cannot register twice.");
+        return;
+      }
       const d = data.detail;
-      const msg =
+      let msg =
         typeof d === "string"
           ? d
           : Array.isArray(d) && d[0]?.msg
             ? String(d[0].msg)
             : "Registration failed";
+      if (res.status === 404 || msg === "Not Found") {
+        msg =
+          "ThreatVision API not found (404). Start FastAPI on the URL in server BACKEND_URL (default http://127.0.0.1:8001). Port 8000 often runs a different app.";
+      }
       setError(msg);
       return;
     }
@@ -111,6 +122,25 @@ export function RegisterForm() {
             />
           </div>
           {error && <p className="text-sm text-threat-malicious">{error}</p>}
+          {alreadyRegistered && (
+            <div className="rounded-lg border border-tv-cyan/30 bg-tv-cyan/5 p-4 text-sm text-tv-muted">
+              <p className="font-medium text-tv-fg">Next step: sign in</p>
+              <p className="mt-2">
+                Go to{" "}
+                <Link href="/login" className="text-tv-cyan underline hover:no-underline">
+                  Sign in
+                </Link>{" "}
+                with this email and your password.
+              </p>
+              <p className="mt-2 text-xs">
+                If the account was created by the local setup script, open{" "}
+                <code className="rounded bg-tv-void/80 px-1 font-mono text-tv-cyan">
+                  threatvision/.dev_login_credentials.txt
+                </code>{" "}
+                on disk for the generated password.
+              </p>
+            </div>
+          )}
           <button
             type="submit"
             disabled={pending}

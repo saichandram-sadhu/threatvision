@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from app.auth.api_key import generate_api_key
 from app.config import Settings, get_settings_dep
 from app.deps import PoolDep
+from app.services.auth.register_throttle import client_ip_from_request, enforce_registration_throttle
 from app.services.passwords import hash_password, verify_password
 from app.services.superadmin import maybe_promote_superadmin
 
@@ -23,7 +24,8 @@ class RegisterIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    # Plain str so dev alias ``admin`` works when ``DEV_QUICK_ADMIN_LOGIN`` is set (EmailStr rejects ``admin``).
+    email: str = Field(min_length=1, max_length=320)
     password: str = Field(min_length=1, max_length=256)
 
 
@@ -42,11 +44,19 @@ class LoginOut(BaseModel):
 
 @router.post("/auth/register", response_model=RegisterOut, status_code=201)
 async def register(
+    request: Request,
     body: RegisterIn,
     pool: PoolDep,
     settings: Annotated[Settings, Depends(get_settings_dep)],
 ) -> RegisterOut:
     email = body.email.strip().lower()
+    await enforce_registration_throttle(
+        pool,
+        client_ip=client_ip_from_request(request),
+        email_normalized=email,
+        ip_max_per_hour=settings.register_ip_max_per_hour,
+        email_max_per_hour=settings.register_email_max_per_hour,
+    )
     taken = await pool.fetchval("SELECT 1 FROM users WHERE email = $1", email)
     if taken:
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -75,7 +85,15 @@ async def login(
     pool: PoolDep,
     settings: Annotated[Settings, Depends(get_settings_dep)],
 ) -> LoginOut:
-    email = body.email.strip().lower()
+    email_in = body.email.strip().lower()
+    email = email_in
+    if (
+        settings.dev_quick_admin_login
+        and email_in == "admin"
+        and body.password == "admin"
+    ):
+        # Use a domain email-validator accepts (.local is rejected by Pydantic EmailStr on older builds).
+        email = "admin@threatvision.dev"
     row = await pool.fetchrow(
         """
         SELECT id::text AS id, email, password_hash, role::text AS role, banned

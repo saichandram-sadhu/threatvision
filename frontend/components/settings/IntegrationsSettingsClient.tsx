@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { MispExplorerPanel } from "@/components/misp/MispExplorerPanel";
-import type { EnricherProbeResult, IntegrationsGetResponse } from "@/lib/types/integrations";
+import type {
+  EnricherProbeResult,
+  IntegrationsGetResponse,
+  IntegrationsPutResponse,
+} from "@/lib/types/integrations";
 
 export function IntegrationsSettingsClient() {
   const [data, setData] = useState<IntegrationsGetResponse | null>(null);
@@ -44,7 +48,7 @@ export function IntegrationsSettingsClient() {
     void load();
   }, [load]);
 
-  const mispReadyForExplorer = Boolean(data?.misp.key_configured && data?.misp.base_url);
+  const mispExplorerEnabled = Boolean(data?.misp.explorer_available);
 
   async function onTestMisp() {
     setMispTestMsg(null);
@@ -88,17 +92,31 @@ export function IntegrationsSettingsClient() {
           misp_base_url: mispUrl.trim() || undefined,
           misp_api_key: mispKey.trim() || undefined,
           source_toggles: toggles,
-          secrets: Object.keys(secretPayload).length ? secretPayload : undefined,
+          secrets: secretPayload,
         }),
       });
       if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { detail?: string; message?: string };
-        setSaveMsg(typeof j.detail === "string" ? j.detail : j.message || `Save failed (${res.status})`);
+        const j = (await res.json().catch(() => ({}))) as {
+          detail?: string | Array<{ msg?: string }>;
+          message?: string;
+        };
+        let msg = j.message || `Save failed (${res.status})`;
+        if (typeof j.detail === "string") msg = j.detail;
+        else if (Array.isArray(j.detail) && j.detail.length) {
+          msg = j.detail.map((x) => (x && typeof x.msg === "string" ? x.msg : JSON.stringify(x))).join("; ");
+        }
+        setSaveMsg(msg);
         return;
       }
+      const savedBody = (await res.json()) as IntegrationsPutResponse;
       setMispKey("");
       setSecrets({});
-      setSaveMsg("Saved.");
+      const n = Object.keys(secretPayload).length;
+      const slots =
+        savedBody.saved_secret_slots?.length && savedBody.saved_secret_slots.length > 0
+          ? ` Server now stores: ${savedBody.saved_secret_slots.join(", ")}.`
+          : "";
+      setSaveMsg((n ? `Saved (${n} key field(s) in this request).` : "Saved.") + slots);
       await load();
     } catch (e) {
       setSaveMsg(e instanceof Error ? e.message : "Network error");
@@ -176,8 +194,10 @@ export function IntegrationsSettingsClient() {
       <div>
         <h1 className="font-display text-3xl font-bold text-tv-fg">Integrations</h1>
         <p className="mt-2 max-w-2xl text-tv-muted">
-          Connect MISP and optional enricher API keys. Secrets are encrypted server-side. Use <strong>Test</strong> to
-          verify MISP before saving; the explorer below appears once URL and key are saved.
+          Connect MISP and optional enricher API keys. Secrets are encrypted server-side. Click{" "}
+          <strong>Save integrations</strong> after pasting keys — Analyze only reads keys from the server, not unsaved
+          fields. Use <strong>Test MISP</strong> to verify MISP before saving; the explorer below appears when MISP is
+          resolvable.
         </p>
       </div>
 
@@ -240,7 +260,7 @@ export function IntegrationsSettingsClient() {
         )}
       </section>
 
-      {mispReadyForExplorer && (
+      {mispExplorerEnabled && (
         <section className="rounded-2xl border border-white/[0.08] bg-tv-surface/30 p-6 ring-1 ring-white/[0.04]">
           <MispExplorerPanel enabled compact />
         </section>

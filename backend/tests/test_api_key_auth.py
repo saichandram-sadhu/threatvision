@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.auth.api_key import compute_api_key_hash, generate_api_key
@@ -83,25 +84,21 @@ def test_v1_me_rejects_bad_key_with_pool_override() -> None:
 
 
 def test_v1_me_503_when_pool_none() -> None:
-    """No DATABASE_URL → pool unset → get_pool raises 503."""
-
-    class AppWithNoPool:
-        pass
-
-    # Use fresh TestClient with app that has pool=None on state
-    from contextlib import asynccontextmanager
+    """DB unavailable: get_pool raises 503 (simulated via dependency override)."""
 
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
     from app.routers import internal, v1_me
 
-    @asynccontextmanager
-    async def empty_lifespan(a: FastAPI):
-        a.state.pool = None
-        yield
+    async def pool_unavailable() -> None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database unavailable — start PostgreSQL (e.g. docker compose up -d in threatvision/).",
+        )
 
-    mini = FastAPI(lifespan=empty_lifespan)
+    mini = FastAPI()
+    mini.dependency_overrides[get_pool] = pool_unavailable
     s = get_settings()
     mini.add_middleware(
         CORSMiddleware,
@@ -119,3 +116,4 @@ def test_v1_me_503_when_pool_none() -> None:
     with TestClient(mini) as client:
         r = client.get("/v1/me", headers={"Authorization": f"Bearer {plain}"})
     assert r.status_code == 503
+    mini.dependency_overrides.clear()
