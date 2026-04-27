@@ -1,15 +1,14 @@
-import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-import { authOptions } from "@/lib/auth";
 import { getInternalJwtAndApiBase, isBackendLinkedUserId } from "@/lib/backend";
 
 async function proxy(request: NextRequest, pathSegments: string[]) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const token = await getToken({ req: request });
+  if (!token?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!isBackendLinkedUserId(session.user.id)) {
+  if (!isBackendLinkedUserId(token.id as string)) {
     return NextResponse.json(
       {
         error: "oauth_not_linked",
@@ -23,7 +22,7 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   let internalJwt: string;
   let apiBase: string;
   try {
-    const out = await getInternalJwtAndApiBase(session.user.id, session.user.role);
+    const out = await getInternalJwtAndApiBase(token.id as string, (token.role as string) ?? "USER");
     internalJwt = out.token;
     apiBase = out.apiBase;
   } catch (e) {

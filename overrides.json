@@ -1,0 +1,1 @@
+{"containerOverrides": [{"name": "threatvision-backend", "command": ["python", "scripts/apply_migrations.py"]}]}

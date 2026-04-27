@@ -43,6 +43,11 @@ class MispSaveOut(BaseModel):
     base_url: str
 
 
+class MispSettingsOut(BaseModel):
+    base_url: str | None
+    key_configured: bool
+
+
 @router.post("/settings/misp/test", response_model=MispTestOut)
 async def test_misp_connection(
     body: MispTestBody,
@@ -74,6 +79,25 @@ async def test_misp_connection(
             resolution=resolution,
             detail=str(e),
         )
+
+
+@router.get("/settings/misp", response_model=MispSettingsOut)
+async def get_misp_settings(
+    pool: PoolDep,
+    user: Annotated[InternalUser, Depends(get_current_internal_user)],
+) -> MispSettingsOut:
+    row = await pool.fetchrow(
+        """
+        SELECT misp_base_url, misp_api_key_ciphertext
+        FROM user_integration_settings
+        WHERE user_id = $1
+        """,
+        user.user_id,
+    )
+    return MispSettingsOut(
+        base_url=row["misp_base_url"] if row else None,
+        key_configured=bool(row and row["misp_api_key_ciphertext"]),
+    )
 
 
 @router.put("/settings/misp", response_model=MispSaveOut)
