@@ -57,7 +57,7 @@ resource "aws_lb_target_group" "backend" {
     healthy_threshold   = 3
     unhealthy_threshold = 3
     timeout             = 5
-    path                = "/api/v1/health"
+    path                = "/health"
     interval            = 30
     matcher             = "200-399"
   }
@@ -90,7 +90,39 @@ resource "aws_lb_listener_rule" "backend" {
 
   condition {
     path_pattern {
-      values = ["/api/*", "/internal/*"]
+      values = ["/api/*", "/internal/*", "/auth/*", "/admin/*", "/settings/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_2" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 101
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/ioc/*", "/bulk/*", "/reports/*", "/v1/*", "/stats/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_3" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 102
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/activity/*", "/me/*", "/health", "/docs", "/openapi.json"]
     }
   }
 }
