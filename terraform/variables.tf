@@ -39,3 +39,9 @@ variable "superadmin_email" {
   type        = string
   default     = "admin@threatvision.dev"
 }
+
+variable "encryption_key" {
+  description = "Encryption Key for secrets"
+  type        = string
+  sensitive   = true
+}

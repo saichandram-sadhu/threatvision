@@ -118,7 +118,8 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "BFF_SERVICE_KEY", value = var.bff_service_key },
         { name = "API_KEY_PEPPER", value = var.api_key_pepper },
         { name = "SUPERADMIN_EMAIL", value = var.superadmin_email },
-        { name = "PYTHONUNBUFFERED", value = "1" }
+        { name = "PYTHONUNBUFFERED", value = "1" },
+        { name = "ENCRYPTION_KEY", value = var.encryption_key }
       ]
       logConfiguration = {
         logDriver = "awslogs"
