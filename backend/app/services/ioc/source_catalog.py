@@ -25,7 +25,7 @@ CATALOG_ORDER: list[CatalogEntry] = [
     CatalogEntry("misp", "MISP", False, None, _ALL),
     CatalogEntry("virustotal", "VirusTotal", True, "virustotal", _ALL),
     CatalogEntry("abuseipdb", "AbuseIPDB", True, "abuseipdb", frozenset({"ip"})),
-    CatalogEntry("otx", "AlienVault OTX", False, None, frozenset({"ip", "hash", "domain", "url", "email_header"})),
+    CatalogEntry("otx", "AlienVault OTX", False, "otx", frozenset({"ip", "hash", "domain", "url", "email_header"})),
     CatalogEntry("shodan", "Shodan", True, "shodan", frozenset({"ip", "domain", "url"})),
     CatalogEntry("urlscan", "URLScan.io", True, "urlscan", frozenset({"url", "domain"})),
     CatalogEntry("malwarebazaar", "MalwareBazaar", False, None, frozenset({"hash"})),

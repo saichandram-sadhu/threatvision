@@ -12,6 +12,7 @@ import { MispHealthWidget } from "@/components/dashboard/MispHealthWidget";
 import { VerdictDistribution } from "@/components/dashboard/VerdictDistribution";
 import { useActivityRecent } from "@/lib/hooks/useActivityRecent";
 import { useDashboardStats } from "@/lib/hooks/useDashboardStats";
+import { APIKeysStatusWidget } from "@/components/dashboard/APIKeysStatusWidget";
 
 const ThreatGlobe = dynamic(
   () => import("@/components/dashboard/ThreatGlobe").then((m) => m.ThreatGlobe),
@@ -81,6 +82,12 @@ export function DashboardClient({ apiEnabled, email, role }: Props) {
         loading={statsQ.loading}
         error={statsQ.error}
       />
+
+      {role === "SUPERADMIN" && (
+        <div className="dash-section">
+          <APIKeysStatusWidget enabled={apiEnabled} />
+        </div>
+      )}
 
       <VerdictDistribution
         buckets={statsQ.data?.verdict_distribution_30d ?? []}

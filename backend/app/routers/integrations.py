@@ -61,9 +61,7 @@ async def get_integrations(
         if e.id == "misp":
             continue
         json_key: str | None = e.secret_key
-        if e.id == "otx":
-            json_key = "otx"
-        elif not e.requires_api_key and e.id != "otx":
+        if not e.requires_api_key and e.id != "otx" and not e.secret_key:
             json_key = None
 
         if json_key:
@@ -146,6 +144,10 @@ async def put_integrations(
                 status_code=503,
                 detail="Cannot encrypt settings — check ENCRYPTION_KEY in backend environment.",
             ) from e
+    
+    # Debug logging for merging
+    print(f"[integrations] Existing secrets keys: {list(secrets.keys())}")
+    print(f"[integrations] Incoming secrets keys: {list(body.secrets.keys()) if body.secrets else 'None'}")
 
     secrets_json = json.dumps(secrets)
     try:

@@ -130,13 +130,10 @@ export function IntegrationsSettingsClient() {
         return;
       }
       const savedBody = (await res.json()) as IntegrationsPutResponse;
-      const n = Object.keys(secretPayload).length;
-      const slots =
-        savedBody.saved_secret_slots?.length && savedBody.saved_secret_slots.length > 0
-          ? ` Server now stores: ${savedBody.saved_secret_slots.join(", ")}.`
-          : "";
-      setSaveMsg((n ? `Saved (${n} key field(s) in this request).` : "Saved.") + slots);
-      await load();
+      setSaveMsg(`Saved. Server now has keys for: ${savedBody.saved_secret_slots?.join(", ") || "none"}`);
+      
+      // Delay load slightly to ensure DB consistency in some environments
+      setTimeout(() => void load(), 500);
     } catch (e) {
       setSaveMsg(e instanceof Error ? e.message : "Network error");
     } finally {
@@ -210,6 +207,10 @@ export function IntegrationsSettingsClient() {
       }
     } finally {
       if (!sourceId) setBusy(false);
+      // Remove loading state if it was an auto-test
+      if (sourceId) {
+        setProbeResults((prev) => (prev || []).filter(x => x.status !== "Testing..." || x.id !== sourceId));
+      }
     }
   }
 
